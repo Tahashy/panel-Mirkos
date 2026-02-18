@@ -12,7 +12,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingRestaurantes, setLoadingRestaurantes] = useState(true);
-  
+
   const { login } = useAuth();
 
   useEffect(() => {
@@ -23,7 +23,7 @@ const Login = () => {
     try {
       const { data, error } = await supabase
         .from('restaurantes')
-        .select('id, nombre, plan')
+        .select('id, nombre')
         .eq('activo', true)
         .order('nombre');
 
@@ -40,20 +40,20 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
+
     if (!email || !password || !restauranteId) {
       setError('Por favor completa todos los campos');
       return;
     }
 
     setLoading(true);
-    
+
     const result = await login(email, password, restauranteId);
-    
+
     if (!result.success) {
       setError(result.error || 'Error al iniciar sesión');
     }
-    
+
     setLoading(false);
   };
 
@@ -131,7 +131,7 @@ const Login = () => {
           transform: 'scale(1.1)',
           zIndex: 0
         }} />
-        
+
         {/* Overlay oscuro */}
         <div style={{
           position: 'absolute',
@@ -144,7 +144,7 @@ const Login = () => {
         }} />
 
         {/* Card de Login */}
-        <div 
+        <div
           className="login-container"
           style={{
             position: 'relative',
@@ -153,7 +153,7 @@ const Login = () => {
             maxWidth: '400px'
           }}
         >
-          <div 
+          <div
             className="login-card"
             style={{
               background: 'rgba(255, 255, 255, 0.98)',
@@ -166,7 +166,7 @@ const Login = () => {
           >
             {/* Header */}
             <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-              <div 
+              <div
                 className="logo-circle"
                 style={{
                   width: '70px',
@@ -183,10 +183,10 @@ const Login = () => {
               >
                 <Utensils size={32} color="white" />
               </div>
-              <h1 
+              <h1
                 className="login-title"
-                style={{ 
-                  fontSize: '28px', 
+                style={{
+                  fontSize: '28px',
                   margin: '0 0 8px 0',
                   fontWeight: '700',
                   color: '#1a202c',
@@ -195,8 +195,8 @@ const Login = () => {
               >
                 Sistema de Gestión
               </h1>
-              <p style={{ 
-                color: '#718096', 
+              <p style={{
+                color: '#718096',
                 margin: 0,
                 fontSize: '15px'
               }}>
@@ -208,21 +208,21 @@ const Login = () => {
             <form onSubmit={handleSubmit}>
               {/* Restaurante */}
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ 
-                  display: 'block', 
-                  marginBottom: '8px', 
+                <label style={{
+                  display: 'block',
+                  marginBottom: '8px',
                   fontWeight: '600',
                   color: '#2d3748',
                   fontSize: '14px'
                 }}>
-                  <Building2 size={16} style={{ 
-                    display: 'inline', 
+                  <Building2 size={16} style={{
+                    display: 'inline',
                     marginRight: '6px',
                     verticalAlign: 'middle'
                   }} />
                   Restaurante
                 </label>
-                
+
                 {loadingRestaurantes ? (
                   <div style={{
                     padding: '12px',
@@ -263,7 +263,7 @@ const Login = () => {
                     <option value="">Selecciona un restaurante</option>
                     {restaurantes.map(rest => (
                       <option key={rest.id} value={rest.id}>
-                        {rest.nombre} • {rest.plan.toUpperCase()}
+                        {rest.nombre}
                       </option>
                     ))}
                   </select>
@@ -272,15 +272,15 @@ const Login = () => {
 
               {/* Email */}
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ 
-                  display: 'block', 
-                  marginBottom: '8px', 
+                <label style={{
+                  display: 'block',
+                  marginBottom: '8px',
                   fontWeight: '600',
                   color: '#2d3748',
                   fontSize: '14px'
                 }}>
-                  <Mail size={16} style={{ 
-                    display: 'inline', 
+                  <Mail size={16} style={{
+                    display: 'inline',
                     marginRight: '6px',
                     verticalAlign: 'middle'
                   }} />
@@ -315,15 +315,15 @@ const Login = () => {
 
               {/* Contraseña */}
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ 
-                  display: 'block', 
-                  marginBottom: '8px', 
+                <label style={{
+                  display: 'block',
+                  marginBottom: '8px',
                   fontWeight: '600',
                   color: '#2d3748',
                   fontSize: '14px'
                 }}>
-                  <Lock size={16} style={{ 
-                    display: 'inline', 
+                  <Lock size={16} style={{
+                    display: 'inline',
                     marginRight: '6px',
                     verticalAlign: 'middle'
                   }} />
