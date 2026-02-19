@@ -41,7 +41,7 @@ export const obtenerPagos = async (restauranteId, filtros = {}) => {
         }
 
         if (filtros.tipoServicio && filtros.tipoServicio !== 'todos') {
-            query = query.eq('tipo_servicio', filtros.tipoServicio);
+            query = query.eq('tipo', filtros.tipoServicio);
         }
 
         // Limitar resultados
@@ -90,7 +90,7 @@ export const obtenerEstadisticas = async (restauranteId, fechaInicio, fechaFin) 
     try {
         const { data, error } = await supabase
             .from('pedidos')
-            .select('total, metodo_pago, tipo_servicio, propina')
+            .select('total, metodo_pago, tipo, propina')
             .eq('restaurante_id', restauranteId)
             .eq('estado', 'entregado')
             .gte('fecha_finalizacion', fechaInicio)
@@ -159,7 +159,7 @@ export const obtenerEstadisticas = async (restauranteId, fechaInicio, fechaFin) 
             }
 
             // Por tipo de servicio
-            const tipo = pedido.tipo_servicio || 'mostrador';
+            const tipo = pedido.tipo || 'mostrador';
             if (estadisticas.porTipoServicio[tipo] !== undefined) {
                 estadisticas.porTipoServicio[tipo] += parseFloat(pedido.total || 0);
             }
@@ -248,7 +248,7 @@ export const prepararDatosExportacion = async (restauranteId, filtros = {}) => {
             'Número Pedido': pago.numero_pedido,
             'Fecha': new Date(pago.fecha_finalizacion || pago.created_at).toLocaleString('es-ES'),
             'Cliente': pago.cliente_nombre || 'Sin nombre',
-            'Tipo': pago.tipo_servicio || 'mostrador',
+            'Tipo': pago.tipo || 'mostrador',
             'Mesa': pago.numero_mesa || '-',
             'Subtotal': pago.subtotal,
             'Descuento': pago.descuento || 0,
