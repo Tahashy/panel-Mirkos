@@ -486,7 +486,7 @@ const PanelLateralPedido = ({ pedido, restaurante, onClose, onCambiarEstado, onE
                                         fontSize: '13px',
                                         color: '#718096'
                                     }}>
-                                        ${parseFloat(item.precio_unitario).toFixed(2)} c/u
+                                        ${parseFloat(item.precio || item.precio_unitario || 0).toFixed(2)} c/u
                                     </p>
                                     {item.agregados && item.agregados.length > 0 && (
                                         <div style={{ marginTop: '8px' }}>

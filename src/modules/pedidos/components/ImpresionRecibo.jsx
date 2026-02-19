@@ -108,10 +108,10 @@ const ImpresionRecibo = ({ pedido }) => {
                                 marginBottom: '2px'
                             }}>
                                 <span>
-                                    {item.cantidad}x {item.producto_nombre}
+                                    {item.nombre || item.producto_nombre}
                                 </span>
                                 <span style={{ fontWeight: 'bold' }}>
-                                    ${(item.precio_unitario * item.cantidad).toFixed(2)}
+                                    ${((parseFloat(item.precio || item.precio_unitario || 0) + (item.agregados?.reduce((s, a) => s + parseFloat(a.precio || 0), 0) || 0)) * item.cantidad).toFixed(2)}
                                 </span>
                             </div>
 

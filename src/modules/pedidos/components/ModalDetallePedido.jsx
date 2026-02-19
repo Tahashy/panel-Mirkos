@@ -255,14 +255,14 @@ const ModalDetallePedido = ({ pedido, onClose, onCambiarEstado }) => {
                         overflow: 'hidden',
                         textOverflow: 'ellipsis'
                       }}>
-                        {item.cantidad}x {item.producto_nombre}
+                        {item.cantidad}x {item.nombre || item.producto_nombre}
                       </p>
                       <p style={{
                         margin: 0,
                         fontSize: '13px',
                         color: '#718096'
                       }}>
-                        ${parseFloat(item.precio || item.precio_unitario || 0).toFixed(2)} c/u
+                        {formatearMoneda(item.precio || item.precio_unitario || 0)} c/u
                       </p>
                       {item.agregados && item.agregados.length > 0 && (
                         <div style={{ marginTop: '4px' }}>
@@ -273,7 +273,7 @@ const ModalDetallePedido = ({ pedido, onClose, onCambiarEstado }) => {
                               color: '#10B981',
                               fontWeight: '500'
                             }}>
-                              + {ag.nombre} (${parseFloat(ag.precio).toFixed(2)})
+                              + {ag.nombre} ({formatearMoneda(ag.precio)})
                             </p>
                           ))}
                         </div>
@@ -286,7 +286,7 @@ const ModalDetallePedido = ({ pedido, onClose, onCambiarEstado }) => {
                         fontWeight: '700',
                         color: '#FF6B35'
                       }}>
-                        ${((parseFloat(item.precio || item.precio_unitario || 0) + (item.agregados?.reduce((s, a) => s + parseFloat(a.precio || 0), 0) || 0)) * item.cantidad).toFixed(2)}
+                        {formatearMoneda(((parseFloat(item.precio || 0) + (item.agregados?.reduce((s, a) => s + parseFloat(a.precio || 0), 0) || 0)) * item.cantidad))}
                       </p>
                     </div>
                   </div>

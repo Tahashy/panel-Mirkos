@@ -91,7 +91,7 @@ const ImpresionCocina = ({ pedido }) => {
                             }}>
                                 <span>{item.cantidad}x</span>
                                 <span style={{ flex: 1, marginLeft: '10px' }}>
-                                    {item.producto_nombre}
+                                    {item.nombre || item.producto_nombre}
                                 </span>
                             </div>
 

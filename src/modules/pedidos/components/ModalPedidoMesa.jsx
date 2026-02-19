@@ -5,6 +5,7 @@ import { X, Plus, Minus, Printer, DollarSign, Clock } from 'lucide-react';
 import { supabase } from '../../../services/supabaseClient';
 import { showToast } from '../../../components/Toast';
 import { liberarMesa } from '../../../services/mesasService';
+import { calcularTotales, formatearMoneda } from '../utils/pedidoHelpers';
 import ModalAgregados from './ModalAgregados';
 import ConfirmationModal from '../../../components/ConfirmationModal';
 
@@ -55,7 +56,7 @@ const ModalPedidoMesa = ({ mesa, productos, onClose, onSuccess }) => {
 
             const { data: itemsData, error: itemsError } = await supabase
                 .from('pedido_items')
-                .select('*')
+                .select('*, nombre, precio') // Asegurar campos correctos
                 .eq('pedido_id', pedidoData.id);
 
             if (itemsError) throw itemsError;
@@ -88,19 +89,19 @@ const ModalPedidoMesa = ({ mesa, productos, onClose, onSuccess }) => {
 
     const agregarProductoAlPedido = async (producto, agregadosSeleccionados = []) => {
         try {
-            const precioTotal = parseFloat(producto.precio) +
-                agregadosSeleccionados.reduce((sum, ag) => sum + parseFloat(ag.precio), 0);
+            const precioBase = parseFloat(producto.precio || 0);
+            const precioAgregados = (agregadosSeleccionados || []).reduce((sum, ag) => sum + parseFloat(ag.precio || 0), 0);
+            const precioFinal = precioBase + precioAgregados;
 
             const { error } = await supabase
                 .from('pedido_items')
                 .insert([{
                     pedido_id: pedido.id,
                     producto_id: producto.id,
-                    producto_nombre: producto.nombre,
+                    nombre: producto.nombre, // CAMBIO: producto_nombre -> nombre
                     cantidad: 1,
-                    precio_unitario: precioTotal,
-                    agregados: agregadosSeleccionados,
-                    subtotal: precioTotal
+                    precio: precioBase, // CAMBIO: enviar precio base, agregados aparte
+                    agregados: agregadosSeleccionados
                 }]);
 
             if (error) throw error;
@@ -111,27 +112,32 @@ const ModalPedidoMesa = ({ mesa, productos, onClose, onSuccess }) => {
             setProductoAgregados(null);
         } catch (error) {
             console.error('Error agregando producto:', error);
-            showToast('Error agregando producto', 'error');
+            showToast('Error al agregar producto: Revisa la conexión', 'error');
         }
     };
 
     const recalcularTotales = async () => {
-        const { data: itemsActualizados } = await supabase
-            .from('pedido_items')
-            .select('*')
-            .eq('pedido_id', pedido.id);
+        try {
+            const { data: itemsActualizados } = await supabase
+                .from('pedido_items')
+                .select('*, nombre, precio')
+                .eq('pedido_id', pedido.id);
 
-        const subtotal = itemsActualizados.reduce((sum, item) => sum + parseFloat(item.subtotal), 0);
-        const iva = subtotal * 0.10;
-        const total = subtotal + iva;
+            // Usar el helper centralizado para recalcular
+            const { subtotal, iva, total } = calcularTotales(itemsActualizados);
 
-        await supabase
-            .from('pedidos')
-            .update({ subtotal, iva, total })
-            .eq('id', pedido.id);
+            const { error } = await supabase
+                .from('pedidos')
+                .update({ subtotal, iva, total })
+                .eq('id', pedido.id);
 
-        setPedido({ ...pedido, subtotal, iva, total });
-        setItems(itemsActualizados);
+            if (error) throw error;
+
+            setPedido({ ...pedido, subtotal, iva, total });
+            setItems(itemsActualizados);
+        } catch (error) {
+            console.error('Error recalculando totales:', error);
+        }
     };
 
     const ejecutarCierreCuenta = async () => {
@@ -316,7 +322,7 @@ const ModalPedidoMesa = ({ mesa, productos, onClose, onSuccess }) => {
                                                     fontWeight: '600',
                                                     color: '#1a202c'
                                                 }}>
-                                                    {item.cantidad}x {item.producto_nombre}
+                                                    {item.cantidad}x {item.nombre || item.producto_nombre}
                                                 </p>
                                                 {item.agregados && item.agregados.length > 0 && (
                                                     <p style={{
@@ -333,7 +339,7 @@ const ModalPedidoMesa = ({ mesa, productos, onClose, onSuccess }) => {
                                                 fontWeight: '700',
                                                 color: '#FF6B35'
                                             }}>
-                                                ${parseFloat(item.subtotal).toFixed(2)}
+                                                {formatearMoneda(((parseFloat(item.precio || 0) + (item.agregados || []).reduce((s, a) => s + parseFloat(a?.precio || 0), 0)) * item.cantidad))}
                                             </span>
                                         </div>
                                     ))}
@@ -353,7 +359,7 @@ const ModalPedidoMesa = ({ mesa, productos, onClose, onSuccess }) => {
                                         fontSize: '14px'
                                     }}>
                                         <span style={{ color: '#718096' }}>Subtotal:</span>
-                                        <span style={{ fontWeight: '600' }}>${parseFloat(pedido.subtotal).toFixed(2)}</span>
+                                        <span style={{ fontWeight: '600' }}>{formatearMoneda(pedido.subtotal)}</span>
                                     </div>
                                     <div style={{
                                         display: 'flex',
@@ -362,7 +368,7 @@ const ModalPedidoMesa = ({ mesa, productos, onClose, onSuccess }) => {
                                         fontSize: '14px'
                                     }}>
                                         <span style={{ color: '#718096' }}>IVA (10%):</span>
-                                        <span style={{ fontWeight: '600' }}>${parseFloat(pedido.iva).toFixed(2)}</span>
+                                        <span style={{ fontWeight: '600' }}>{formatearMoneda(pedido.iva)}</span>
                                     </div>
                                     <div style={{
                                         display: 'flex',
@@ -373,7 +379,7 @@ const ModalPedidoMesa = ({ mesa, productos, onClose, onSuccess }) => {
                                     }}>
                                         <span style={{ fontWeight: '700', color: '#1a202c' }}>TOTAL:</span>
                                         <span style={{ fontWeight: '700', color: '#FF6B35' }}>
-                                            ${parseFloat(pedido.total).toFixed(2)}
+                                            {formatearMoneda(pedido.total)}
                                         </span>
                                     </div>
                                 </div>
