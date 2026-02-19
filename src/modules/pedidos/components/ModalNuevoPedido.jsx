@@ -239,19 +239,26 @@ const ModalNuevoPedido = ({ restauranteId, restaurante = { nombre: 'Restaurante'
             }
 
             // Insert items logic (shared)
-            const itemsToInsert = carrito.map(item => ({
-                pedido_id: pedidoId,
-                producto_id: item.id,
-                cantidad: item.cantidad,
-                notas: item.notas,
-                agregados: item.agregados
-            }));
+            const itemsToInsert = carrito.map(item => {
+                const itemData = {
+                    pedido_id: pedidoId,
+                    producto_id: item.id,
+                    cantidad: item.cantidad,
+                };
+                if (item.notas) itemData.notas = item.notas;
+                if (item.agregados && item.agregados.length > 0) itemData.agregados = item.agregados;
+                return itemData;
+            });
 
+            console.log('Insertando items:', JSON.stringify(itemsToInsert));
             const { error: errorItems } = await supabase
                 .from('pedido_items')
                 .insert(itemsToInsert);
 
-            if (errorItems) throw errorItems;
+            if (errorItems) {
+                console.error('Error detallado items:', JSON.stringify(errorItems));
+                throw errorItems;
+            }
 
             if (tipoPedido === 'mesa' && mesaSeleccionada && !isEditing) {
                 await ocuparMesa(mesaSeleccionada.id, pedidoId, userId);
