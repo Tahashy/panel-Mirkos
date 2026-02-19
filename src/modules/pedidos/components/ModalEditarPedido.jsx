@@ -166,9 +166,7 @@ const ModalEditarPedido = ({ pedido, productos, onClose, onSuccess }) => {
                 pedido_id: pedido.id,
                 producto_id: item.id,
                 cantidad: item.cantidad,
-                precio_unitario: item.precio,
                 agregados: item.agregados,
-                subtotal: (item.precio + item.agregados.reduce((s, a) => s + parseFloat(a.precio), 0)) * item.cantidad,
                 impreso: item.esNuevo ? false : true
             }));
             const { error: itemsError } = await supabase

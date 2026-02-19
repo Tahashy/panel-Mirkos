@@ -243,8 +243,6 @@ const ModalNuevoPedido = ({ restauranteId, restaurante = { nombre: 'Restaurante'
                 pedido_id: pedidoId,
                 producto_id: item.id,
                 cantidad: item.cantidad,
-                precio_unitario: item.precio,
-                subtotal: item.subtotal,
                 notas: item.notas,
                 agregados: item.agregados
             }));
