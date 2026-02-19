@@ -35,16 +35,29 @@ const ModalEditarPedido = ({ pedido, productos, onClose, onSuccess }) => {
 
     const cargarDatosPedido = () => {
         // Convertir pedido_items a formato de carrito
-        const itemsCarrito = pedido.pedido_items?.map(item => ({
-            id: item.producto_id,
-            nombre: item.producto_nombre,
-            precio: parseFloat(item.precio_unitario),
-            cantidad: item.cantidad,
-            agregados: item.agregados || [],
-            item_id: item.id, // ID del pedido_item para actualizaciones
-            esNuevo: false,
-            impreso: item.impreso !== false
-        })) || [];
+        const itemsCarrito = pedido.pedido_items?.map(item => {
+            let agregadosSeguros = [];
+            if (Array.isArray(item.agregados)) {
+                agregadosSeguros = item.agregados;
+            } else if (typeof item.agregados === 'string') {
+                try {
+                    agregadosSeguros = JSON.parse(item.agregados);
+                } catch (e) {
+                    console.warn('Error parsing agregados:', e);
+                }
+            }
+
+            return {
+                id: item.producto_id,
+                nombre: item.nombre || item.producto_nombre || 'Producto sin nombre',
+                precio: parseFloat(item.precio) || parseFloat(item.precio_unitario) || 0,
+                cantidad: item.cantidad,
+                agregados: Array.isArray(agregadosSeguros) ? agregadosSeguros : [],
+                item_id: item.id, // ID del pedido_item para actualizaciones
+                esNuevo: false,
+                impreso: item.impreso !== false
+            };
+        }) || [];
 
         setCarrito(itemsCarrito);
         setCarritoOriginal(JSON.parse(JSON.stringify(itemsCarrito))); // Copia profunda
@@ -387,9 +400,9 @@ const ModalEditarPedido = ({ pedido, productos, onClose, onSuccess }) => {
                                                         </span>
                                                     )}
                                                 </div>
-                                                {item.agregados.length > 0 && (
+                                                {item.agregados && item.agregados.length > 0 && (
                                                     <span style={{ fontSize: '11px', color: '#10B981', display: 'block', marginTop: '2px' }}>
-                                                        + {item.agregados.map(a => a.nombre).join(', ')}
+                                                        + {item.agregados.map(a => (a && typeof a === 'object' && typeof a.nombre === 'string') ? a.nombre : '').filter(Boolean).join(', ')}
                                                     </span>
                                                 )}
                                                 <span style={{ fontSize: '12px', color: '#718096' }}>
