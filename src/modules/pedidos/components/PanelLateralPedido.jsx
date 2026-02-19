@@ -470,7 +470,7 @@ const PanelLateralPedido = ({ pedido, restaurante, onClose, onCambiarEstado, onE
                                             color: '#1a202c',
                                             flex: 1
                                         }}>
-                                            {item.cantidad}x {item.producto_nombre}
+                                            {item.cantidad}x {item.nombre || item.producto_nombre}
                                         </p>
                                         <p style={{
                                             margin: 0,
@@ -478,7 +478,7 @@ const PanelLateralPedido = ({ pedido, restaurante, onClose, onCambiarEstado, onE
                                             fontWeight: '700',
                                             color: '#FF6B35'
                                         }}>
-                                            ${parseFloat(item.subtotal).toFixed(2)}
+                                            ${((parseFloat(item.precio || item.precio_unitario || 0) + (item.agregados?.reduce((s, a) => s + parseFloat(a.precio || 0), 0) || 0)) * item.cantidad).toFixed(2)}
                                         </p>
                                     </div>
                                     <p style={{

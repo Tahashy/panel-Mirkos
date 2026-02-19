@@ -22,7 +22,7 @@ const ModalDetallePedido = ({ pedido, onClose, onCambiarEstado }) => {
 
   const siguienteEstado =
     pedido.estado === 'pendiente' ? 'preparando' :
-    pedido.estado === 'preparando' ? 'listo' : 'entregado';
+      pedido.estado === 'preparando' ? 'listo' : 'entregado';
 
   return (
     <>
@@ -262,7 +262,7 @@ const ModalDetallePedido = ({ pedido, onClose, onCambiarEstado }) => {
                         fontSize: '13px',
                         color: '#718096'
                       }}>
-                        ${parseFloat(item.precio_unitario).toFixed(2)} c/u
+                        ${parseFloat(item.precio || item.precio_unitario || 0).toFixed(2)} c/u
                       </p>
                       {item.agregados && item.agregados.length > 0 && (
                         <div style={{ marginTop: '4px' }}>
@@ -286,7 +286,7 @@ const ModalDetallePedido = ({ pedido, onClose, onCambiarEstado }) => {
                         fontWeight: '700',
                         color: '#FF6B35'
                       }}>
-                        ${parseFloat(item.subtotal).toFixed(2)}
+                        ${((parseFloat(item.precio || item.precio_unitario || 0) + (item.agregados?.reduce((s, a) => s + parseFloat(a.precio || 0), 0) || 0)) * item.cantidad).toFixed(2)}
                       </p>
                     </div>
                   </div>

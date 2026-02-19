@@ -81,7 +81,7 @@ const TicketImpresion = forwardRef(({ pedido, restaurante, tipoImpresion = 'clie
                                         {item.cantidad} x {item.producto_nombre || item.nombre}
                                     </span>
                                     {/* Precio solo si NO es cocina */}
-                                    {!isCocina && <span style={{ marginLeft: '8px' }}>{formatearMoneda(item.subtotal)}</span>}
+                                    {!isCocina && <span style={{ marginLeft: '8px' }}>{formatearMoneda((parseFloat(item.precio || item.precio_unitario || 0) + (item.agregados?.reduce((s, a) => s + parseFloat(a.precio || 0), 0) || 0)) * item.cantidad)}</span>}
                                 </div>
 
                                 {item.agregados && item.agregados.length > 0 && (

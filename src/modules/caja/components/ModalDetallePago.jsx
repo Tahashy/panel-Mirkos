@@ -123,15 +123,19 @@ const ModalDetallePago = ({ pedido, onClose }) => {
                                     <tr key={item.id || index} style={{ borderTop: '1px solid #e2e8f0' }}>
                                         <td style={{ padding: '12px', fontWeight: '600' }}>{item.cantidad}x</td>
                                         <td style={{ padding: '12px' }}>
-                                            <div>{item.producto_nombre}</div>
-                                            {item.agregados && (
+                                            <div>{item.nombre || item.producto_nombre}</div>
+                                            {item.agregados && item.agregados.length > 0 && (
                                                 <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                                                    {Object.entries(item.agregados).map(([k, v]) => `${k}: ${v}`).join(', ')}
+                                                    {Array.isArray(item.agregados)
+                                                        ? item.agregados.map(a => a.nombre).join(', ')
+                                                        : Object.entries(item.agregados).map(([k, v]) => `${k}: ${v}`).join(', ')}
                                                 </div>
                                             )}
                                         </td>
-                                        <td style={{ padding: '12px', textAlign: 'right' }}>{formatearMoneda(item.precio_unitario)}</td>
-                                        <td style={{ padding: '12px', textAlign: 'right' }}>{formatearMoneda(item.subtotal)}</td>
+                                        <td style={{ padding: '12px', textAlign: 'right' }}>{formatearMoneda(item.precio || item.precio_unitario || 0)}</td>
+                                        <td style={{ padding: '12px', textAlign: 'right' }}>
+                                            {formatearMoneda((parseFloat(item.precio || item.precio_unitario || 0) + (item.agregados?.reduce((s, a) => s + parseFloat(a.precio || 0), 0) || 0)) * item.cantidad)}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
