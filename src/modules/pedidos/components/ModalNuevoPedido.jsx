@@ -242,7 +242,6 @@ const ModalNuevoPedido = ({ restauranteId, restaurante = { nombre: 'Restaurante'
             const itemsToInsert = carrito.map(item => ({
                 pedido_id: pedidoId,
                 producto_id: item.id,
-                producto_nombre: item.nombre,
                 cantidad: item.cantidad,
                 precio_unitario: item.precio,
                 subtotal: item.subtotal,

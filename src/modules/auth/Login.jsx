@@ -24,7 +24,6 @@ const Login = () => {
       const { data, error } = await supabase
         .from('restaurantes')
         .select('id, nombre')
-        .eq('activo', true)
         .order('nombre');
 
       if (error) throw error;
