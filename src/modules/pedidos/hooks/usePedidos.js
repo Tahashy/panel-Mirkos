@@ -136,6 +136,18 @@ export const usePedidos = (restauranteId) => {
 
   const eliminarPedido = async (pedidoId) => {
     try {
+      // RELEASE MESA IF EXISTS BEFORE DELETE
+      const { data: mesaOcupada } = await supabase
+        .from('mesas')
+        .select('id')
+        .eq('pedido_activo_id', pedidoId)
+        .maybeSingle();
+
+      if (mesaOcupada) {
+        await liberarMesa(mesaOcupada.id);
+        showToast('Mesa liberada por eliminación de pedido', 'info');
+      }
+
       const { error } = await supabase
         .from('pedidos')
         .delete()

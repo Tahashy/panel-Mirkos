@@ -28,6 +28,11 @@ const ModalPedidoMesa = ({ mesa, productos, onClose, onSuccess }) => {
         try {
             // Verificar si la mesa tiene un pedido activo
             if (!mesa.pedido_activo_id) {
+                if (mesa.estado === 'ocupada') {
+                    // Estado inconsistente: Ocupada pero sin ID de pedido
+                    setLoading(false);
+                    return; // Permite mostrar la UI de error/rescate en el render
+                }
                 showToast('Esta mesa no tiene un pedido activo', 'error');
                 onClose();
                 return;
@@ -39,7 +44,14 @@ const ModalPedidoMesa = ({ mesa, productos, onClose, onSuccess }) => {
                 .eq('id', mesa.pedido_activo_id)
                 .single();
 
-            if (pedidoError) throw pedidoError;
+            if (pedidoError) {
+                if (pedidoError.code === 'PGRST116') { // Not found
+                    // El pedido ya no existe pero la mesa sigue apuntando a él
+                    setLoading(false);
+                    return;
+                }
+                throw pedidoError;
+            }
 
             const { data: itemsData, error: itemsError } = await supabase
                 .from('pedido_items')
@@ -54,6 +66,21 @@ const ModalPedidoMesa = ({ mesa, productos, onClose, onSuccess }) => {
             console.error('Error cargando pedido:', error);
             showToast('Error cargando pedido', 'error');
             onClose();
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleLiberarMesaManual = async () => {
+        try {
+            setLoading(true);
+            await liberarMesa(mesa.id);
+            showToast('Mesa liberada manualmente', 'success');
+            onSuccess();
+            onClose();
+        } catch (error) {
+            console.error('Error liberando mesa:', error);
+            showToast('No se pudo liberar la mesa', 'error');
         } finally {
             setLoading(false);
         }
@@ -231,7 +258,35 @@ const ModalPedidoMesa = ({ mesa, productos, onClose, onSuccess }) => {
 
                     {/* Content */}
                     <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '16px' : '24px' }}>
-                        {!agregarProductos ? (
+                        {!pedido && !agregarProductos ? (
+                            <div style={{
+                                textAlign: 'center', padding: '40px 20px',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px'
+                            }}>
+                                <div style={{
+                                    width: '64px', height: '64px', borderRadius: '50%',
+                                    backgroundColor: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                }}>
+                                    <X size={32} color="#EF4444" />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: '0 0 8px 0', color: '#1a202c' }}>Mesa con Inconsistencia</h3>
+                                    <p style={{ margin: 0, color: '#718096', fontSize: '14px' }}>
+                                        Esta mesa aparece como ocupada pero no se encontró un pedido activo vinculado (pudo ser eliminado o cambiado de tipo).
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={handleLiberarMesaManual}
+                                    style={{
+                                        padding: '12px 24px', borderRadius: '10px', border: 'none',
+                                        backgroundColor: '#EF4444', color: 'white', fontWeight: 'bold',
+                                        cursor: 'pointer', boxShadow: '0 4px 12px rgba(239,68,68,0.3)'
+                                    }}
+                                >
+                                    Liberar Mesa Manualmente
+                                </button>
+                            </div>
+                        ) : !agregarProductos ? (
                             <>
                                 {/* Lista de productos del pedido */}
                                 <h3 style={{
