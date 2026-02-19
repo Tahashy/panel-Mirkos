@@ -77,6 +77,44 @@ const PedidoCard = ({ pedido, onCambiarEstado, onVerDetalle, onImprimir, onEdita
               now={now}
             />
           </div>
+
+          {/* Resumen de Items */}
+          <div style={{
+            marginTop: '12px',
+            padding: '8px 0',
+            borderTop: '1px dashed #edf2f7'
+          }}>
+            {pedido.pedido_items?.slice(0, 3).map((item, idx) => (
+              <div key={idx} style={{ marginBottom: '4px' }}>
+                <p style={{
+                  margin: 0,
+                  fontSize: '12px',
+                  color: '#4a5568',
+                  fontWeight: '500',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  <span style={{ fontWeight: '700', color: '#FF6B35' }}>{item.cantidad}x</span> {item.nombre || item.producto_nombre}
+                </p>
+                {item.agregados && item.agregados.length > 0 && (
+                  <p style={{
+                    margin: '0 0 0 16px',
+                    fontSize: '10px',
+                    color: '#10B981',
+                    fontStyle: 'italic'
+                  }}>
+                    + {item.agregados.map(a => a.nombre).join(', ')}
+                  </p>
+                )}
+              </div>
+            ))}
+            {pedido.pedido_items?.length > 3 && (
+              <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#A0AEC0', fontWeight: '600' }}>
+                ... y {pedido.pedido_items.length - 3} más
+              </p>
+            )}
+          </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button

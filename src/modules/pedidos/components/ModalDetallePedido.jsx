@@ -16,9 +16,19 @@ const ModalDetallePedido = ({ pedido, onClose, onCambiarEstado }) => {
     }
   };
 
-  const subtotal = pedido.pedido_items?.reduce((sum, item) =>
-    sum + parseFloat(item.subtotal || 0), 0
-  ) || 0;
+  const calculatedSubtotal = pedido.pedido_items?.reduce((sum, item) => {
+    const precioBase = parseFloat(item.precio || item.precio_unitario || 0);
+    const precioAgregados = (item.agregados || []).reduce((s, a) => s + parseFloat(a?.precio || 0), 0);
+    return sum + ((precioBase + precioAgregados) * item.cantidad);
+  }, 0) || 0;
+
+  const calculatedIva = calculatedSubtotal * 0.10;
+  const finalTotal = calculatedSubtotal + calculatedIva +
+    (parseFloat(pedido.cargo_servicio || 0)) +
+    (parseFloat(pedido.cargo_embalaje || 0)) +
+    (parseFloat(pedido.propina || 0)) -
+    (parseFloat(pedido.descuento || 0)) +
+    (pedido.taper_adicional ? parseFloat(pedido.costo_taper || 0) : 0);
 
   const siguienteEstado =
     pedido.estado === 'pendiente' ? 'preparando' :
