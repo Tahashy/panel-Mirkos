@@ -47,11 +47,23 @@ const ModalEditarPedido = ({ pedido, productos, onClose, onSuccess }) => {
                 }
             }
 
+            // Lógica de precio ultra-defensiva para evitar 0.00
+            const pReal = parseFloat(item.precio);
+            const pUnit = parseFloat(item.precio_unitario);
+            const pSub = parseFloat(item.subtotal);
+            const cant = parseInt(item.cantidad) || 1;
+
+            // Prioridad: precio real > precio unitario > (subtotal / cantidad)
+            let precioFinal = 0;
+            if (!isNaN(pReal) && pReal > 0) precioFinal = pReal;
+            else if (!isNaN(pUnit) && pUnit > 0) precioFinal = pUnit;
+            else if (!isNaN(pSub) && pSub > 0) precioFinal = pSub / cant;
+
             return {
                 id: item.producto_id,
                 nombre: item.nombre || item.producto_nombre || 'Producto sin nombre',
-                precio: parseFloat(item.precio) || parseFloat(item.precio_unitario) || 0,
-                cantidad: item.cantidad,
+                precio: precioFinal,
+                cantidad: cant,
                 agregados: Array.isArray(agregadosSeguros) ? agregadosSeguros : [],
                 item_id: item.id, // ID del pedido_item para actualizaciones
                 esNuevo: false,
