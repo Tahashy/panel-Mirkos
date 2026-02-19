@@ -166,6 +166,7 @@ const ModalEditarPedido = ({ pedido, productos, onClose, onSuccess }) => {
                 pedido_id: pedido.id,
                 producto_id: item.id,
                 nombre: item.nombre,
+                precio: item.precio,
                 cantidad: item.cantidad,
                 agregados: item.agregados,
                 impreso: item.esNuevo ? false : true
