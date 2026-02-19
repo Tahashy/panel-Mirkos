@@ -133,8 +133,10 @@ export const getTopProducts = async (restauranteId) => {
             .from('pedido_items')
             .select(`
                 producto_nombre, 
+                nombre,
                 cantidad, 
                 precio_unitario,
+                precio,
                 subtotal,
                 productos (
                     categorias (nombre)
@@ -154,13 +156,13 @@ export const getTopProducts = async (restauranteId) => {
         const productMap = {};
 
         items.forEach(item => {
-            const nombre = item.producto_nombre;
+            const nombre = item.nombre || item.producto_nombre;
             if (!productMap[nombre]) {
                 productMap[nombre] = {
                     id: nombre, // Usamos nombre como ID simple
                     nombre: nombre,
                     categoria: item.productos?.categorias?.nombre || 'General',
-                    precio: item.precio_unitario,
+                    precio: item.precio || item.precio_unitario,
                     ventas: 0,
                     ingresos: 0,
                     color: getRandomColor() // Asignar color visual

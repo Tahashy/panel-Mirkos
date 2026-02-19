@@ -23,7 +23,9 @@ export const usePedidos = (restauranteId) => {
             precio_unitario,
             subtotal,
             producto_nombre,
-            agregados
+            agregados,
+            nombre,
+            precio
           ),
           usuarios (
             nombre

@@ -18,7 +18,9 @@ export const obtenerPagos = async (restauranteId, filtros = {}) => {
           subtotal,
           producto_nombre,
           agregados,
-          notas
+          notas,
+          nombre,
+          precio
         ),
         usuarios (
           nombre
@@ -192,7 +194,9 @@ export const obtenerDetallePago = async (pedidoId) => {
           subtotal,
           producto_nombre,
           agregados,
-          notas
+          notas,
+          nombre,
+          precio
         ),
         usuarios (
           id,
