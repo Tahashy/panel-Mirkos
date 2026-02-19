@@ -8,6 +8,8 @@ import { liberarMesa } from '../../../services/mesasService';
 import { calcularTotales, formatearMoneda } from '../utils/pedidoHelpers';
 import ModalAgregados from './ModalAgregados';
 import ConfirmationModal from '../../../components/ConfirmationModal';
+import { impresionService } from '../../../services/impresionService';
+import { impresorasService } from '../../../services/impresorasService';
 
 const ModalPedidoMesa = ({ mesa, productos, onClose, onSuccess }) => {
     const [pedido, setPedido] = useState(null);
@@ -140,6 +142,37 @@ const ModalPedidoMesa = ({ mesa, productos, onClose, onSuccess }) => {
         }
     };
 
+    const handleImprimir = async (tipo = 'caja') => {
+        // 1. Intentar impresión térmica IP
+        const impresoras = impresorasService.getImpresoras()
+            .filter(i => (tipo === 'cocina' ? i.tipo === 'cocina' : i.tipo === 'caja') && i.activo);
+
+        if (impresoras.length > 0) {
+            showToast(`Enviando a impresora IP...`, 'info');
+            let exitoTotal = false;
+
+            for (const imp of impresoras) {
+                try {
+                    const ops = tipo === 'cocina'
+                        ? impresionService.formatearComanda(pedido)
+                        : impresionService.formatearTicket(pedido, { empresa: 'MIRKOS' }); // Fallback a nombre de restaurante
+
+                    await impresionService.enviarAlPlugin(ops, imp.ip);
+                    exitoTotal = true;
+                } catch (err) {
+                    console.error(`Fallo impresión en ${imp.nombre}:`, err);
+                }
+            }
+
+            if (exitoTotal) {
+                showToast('Impreso en equipo térmico', 'success');
+                return;
+            }
+        }
+
+        showToast('No hay impresoras IP configuradas. Registra una en Configuración.', 'warning');
+    };
+
     const ejecutarCierreCuenta = async () => {
         try {
             // Actualizar estado del pedido y datos de pago
@@ -174,7 +207,11 @@ const ModalPedidoMesa = ({ mesa, productos, onClose, onSuccess }) => {
     };
 
     const imprimirCuenta = () => {
-        window.print();
+        handleImprimir('caja');
+    };
+
+    const imprimirComanda = () => {
+        handleImprimir('cocina');
     };
 
     const productosFiltrados = productos.filter(p =>
@@ -522,6 +559,29 @@ const ModalPedidoMesa = ({ mesa, productos, onClose, onSuccess }) => {
                             {!agregarProductos && (
                                 <>
                                     <button
+                                        onClick={imprimirComanda}
+                                        className="no-print"
+                                        style={{
+                                            flex: 1,
+                                            padding: '12px',
+                                            background: '#F59E0B',
+                                            border: 'none',
+                                            borderRadius: '10px',
+                                            color: 'white',
+                                            fontSize: '14px',
+                                            fontWeight: '600',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '8px',
+                                            boxShadow: '0 4px 12px rgba(245,158,11,0.3)'
+                                        }}
+                                    >
+                                        <Clock size={18} />
+                                        Comanda
+                                    </button>
+                                    <button
                                         onClick={imprimirCuenta}
                                         className="no-print"
                                         style={{
@@ -542,7 +602,7 @@ const ModalPedidoMesa = ({ mesa, productos, onClose, onSuccess }) => {
                                         }}
                                     >
                                         <Printer size={18} />
-                                        Imprimir
+                                        Ticket
                                     </button>
                                     <button
                                         onClick={cerrarCuenta}

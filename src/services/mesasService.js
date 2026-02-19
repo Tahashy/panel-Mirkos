@@ -261,19 +261,19 @@ export const agregarMesa = async (salaId, numeroMesa) => {
 };
 
 /**
- * Actualizar mesa (cambiar nombre)
+ * Actualizar mesa (cambiar nombre u otros campos)
  */
-export const updateMesa = async (mesaId, numeroMesa) => {
+export const updateMesa = async (mesaId, data) => {
     try {
-        const { data, error } = await supabase
+        const { data: updatedMesa, error } = await supabase
             .from('mesas')
-            .update({ numero_mesa: numeroMesa })
+            .update(data)
             .eq('id', mesaId)
             .select()
             .single();
 
         if (error) throw error;
-        return { data, error: null };
+        return { data: updatedMesa, error: null };
     } catch (error) {
         console.error('Error actualizando mesa:', error);
         return { data: null, error };

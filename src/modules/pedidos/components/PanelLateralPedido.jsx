@@ -7,6 +7,8 @@ import { getEstadoColor, generarLinkWhatsapp } from '../utils/pedidoHelpers';
 import DropdownButton from './DropdownButton';
 import TicketImpresion from './TicketImpresion';
 import { showToast } from '../../../components/Toast';
+import { impresionService } from '../../../services/impresionService';
+import { impresorasService } from '../../../services/impresorasService';
 
 const PanelLateralPedido = ({ pedido, restaurante, onClose, onCambiarEstado, onEditar, onEliminar, isAdmin }) => {
     const [vistaImpresion, setVistaImpresion] = useState(null);
@@ -22,8 +24,35 @@ const PanelLateralPedido = ({ pedido, restaurante, onClose, onCambiarEstado, onE
         return icons[tipo] || '🛒';
     };
 
-    const handleImprimir = (tipo) => {
-        // Establecer tipo para renderizar el ticket correcto
+    const handleImprimir = async (tipo) => {
+        // 1. Intentar impresión térmica IP
+        const impresoras = impresorasService.getImpresoras()
+            .filter(i => (tipo === 'cocina' ? i.tipo === 'cocina' : i.tipo === 'caja') && i.activo);
+
+        if (impresoras.length > 0) {
+            showToast(`Enviando a impresora IP...`, 'info');
+            let exitoTotal = false;
+
+            for (const imp of impresoras) {
+                try {
+                    const ops = tipo === 'cocina'
+                        ? impresionService.formatearComanda(pedido)
+                        : impresionService.formatearTicket(pedido, { empresa: restaurante?.nombre });
+
+                    await impresionService.enviarAlPlugin(ops, imp.ip);
+                    exitoTotal = true;
+                } catch (err) {
+                    console.error(`Fallo impresión en ${imp.nombre}:`, err);
+                }
+            }
+
+            if (exitoTotal) {
+                showToast('Impreso en equipo térmico', 'success');
+                return; // Evitamos el fallback si funcionó
+            }
+        }
+
+        // 2. Fallback: Impresión de navegador (Original)
         setVistaImpresion(tipo);
 
         // Esperar render

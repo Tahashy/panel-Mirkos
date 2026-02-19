@@ -27,6 +27,7 @@ import {
 import { useAuth } from '../auth/AuthContext';
 import { useLanguage } from './LanguageContext';
 import { changePassword } from '../../services/seguridadService';
+import ConfiguracionImpresoras from './components/ConfiguracionImpresoras';
 
 const Configuracion = ({ restauranteId }) => {
     const [activeTab, setActiveTab] = useState('general');
@@ -770,6 +771,7 @@ const Configuracion = ({ restauranteId }) => {
                     { id: 'preferencias', label: t('preferencias'), icon: Printer },
                     { id: 'horarios', label: t('horarios'), icon: Clock },
                     { id: 'usuarios', label: t('usuarios'), icon: Users },
+                    { id: 'impresoras', label: 'Impresoras', icon: Printer },
                     { id: 'seguridad', label: t('seguridad'), icon: Shield }
                 ].map(tab => (
                     <button
@@ -789,6 +791,7 @@ const Configuracion = ({ restauranteId }) => {
                 {activeTab === 'preferencias' && renderPreferencias()}
                 {activeTab === 'horarios' && renderHorarios()}
                 {activeTab === 'usuarios' && renderUsuarios()}
+                {activeTab === 'impresoras' && <ConfiguracionImpresoras />}
                 {activeTab === 'seguridad' && renderSeguridad()}
             </div>
 

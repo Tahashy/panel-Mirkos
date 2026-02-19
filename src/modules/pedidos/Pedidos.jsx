@@ -21,6 +21,8 @@ import { useRef } from 'react';
 // Hook personalizado
 import { usePedidos } from './hooks/usePedidos';
 import ConfirmationModal from '../../components/ConfirmationModal';
+import { impresionService } from '../../services/impresionService';
+import { impresorasService } from '../../services/impresorasService';
 
 const thStyle = {
     padding: '16px',
@@ -85,7 +87,35 @@ const Pedidos = ({ restauranteId, restaurante, isAdmin, userId, openNewOrderModa
     const [pedidoImprimir, setPedidoImprimir] = useState(null);
     const componentRef = useRef();
 
-    const handleImprimir = (pedido) => {
+    const handleImprimir = async (pedido, tipo = 'caja') => { // default a caja para el listado
+        // 1. Intentar impresión térmica IP
+        const impresoras = impresorasService.getImpresoras()
+            .filter(i => (tipo === 'cocina' ? i.tipo === 'cocina' : i.tipo === 'caja') && i.activo);
+
+        if (impresoras.length > 0) {
+            showToast(`Enviando a impresora IP...`, 'info');
+            let exitoTotal = false;
+
+            for (const imp of impresoras) {
+                try {
+                    const ops = tipo === 'cocina'
+                        ? impresionService.formatearComanda(pedido)
+                        : impresionService.formatearTicket(pedido, { empresa: restaurante?.nombre });
+
+                    await impresionService.enviarAlPlugin(ops, imp.ip);
+                    exitoTotal = true;
+                } catch (err) {
+                    console.error(`Fallo impresión en ${imp.nombre}:`, err);
+                }
+            }
+
+            if (exitoTotal) {
+                showToast('Impreso en equipo térmico', 'success');
+                return;
+            }
+        }
+
+        // 2. Fallback: Diálogo del navegador
         setPedidoImprimir(pedido);
         // Esperar a que el estado se actualice y el componente se renderice
         setTimeout(() => {

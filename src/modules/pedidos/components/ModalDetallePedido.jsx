@@ -377,7 +377,7 @@ const ModalDetallePedido = ({ pedido, onClose, onCambiarEstado }) => {
               }}>
                 <span style={{ color: '#718096' }}>Subtotal:</span>
                 <span style={{ fontWeight: '600', color: '#4a5568' }}>
-                  ${subtotal.toFixed(2)}
+                  ${calculatedSubtotal.toFixed(2)}
                 </span>
               </div>
               {pedido.taper_adicional && pedido.costo_taper > 0 && (
@@ -389,7 +389,7 @@ const ModalDetallePedido = ({ pedido, onClose, onCambiarEstado }) => {
                 }}>
                   <span style={{ color: '#718096' }}>Taper(s):</span>
                   <span style={{ fontWeight: '600', color: '#10B981' }}>
-                    ${parseFloat(pedido.costo_taper).toFixed(2)}
+                    ${parseFloat(pedido.costo_taper || 0).toFixed(2)}
                   </span>
                 </div>
               )}
@@ -401,7 +401,7 @@ const ModalDetallePedido = ({ pedido, onClose, onCambiarEstado }) => {
               }}>
                 <span style={{ color: '#718096' }}>IVA (10%):</span>
                 <span style={{ fontWeight: '600', color: '#4a5568' }}>
-                  ${parseFloat(pedido.iva || 0).toFixed(2)}
+                  ${calculatedIva.toFixed(2)}
                 </span>
               </div>
               <div style={{
@@ -413,7 +413,7 @@ const ModalDetallePedido = ({ pedido, onClose, onCambiarEstado }) => {
               }}>
                 <span style={{ fontWeight: '700', color: '#1a202c' }}>Total:</span>
                 <span style={{ fontWeight: '700', color: '#FF6B35' }}>
-                  ${parseFloat(pedido.total).toFixed(2)}
+                  ${finalTotal.toFixed(2)}
                 </span>
               </div>
             </div>
