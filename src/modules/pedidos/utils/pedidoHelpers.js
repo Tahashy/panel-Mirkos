@@ -31,18 +31,30 @@ export const generarNumeroPedido = () => {
 };
 
 export const calcularTotales = (carrito, tapersAgregados = []) => {
-  const subtotal = carrito.reduce((sum, item) => {
-    const precioItem = item.precio * item.cantidad;
-    const precioAgregados = item.agregados.reduce((s, a) => s + parseFloat(a.precio), 0) * item.cantidad;
-    return sum + precioItem + precioAgregados;
+  const subtotal = (carrito || []).reduce((sum, item) => {
+    const precioBase = parseFloat(item.precio || 0);
+    const cantidad = parseInt(item.cantidad || 0);
+    const precioAgregados = (item.agregados || []).reduce((s, a) => s + parseFloat(a?.precio || 0), 0);
+
+    const subtotalItem = (precioBase + precioAgregados) * cantidad;
+    return sum + subtotalItem;
   }, 0);
 
-  const costoTaper = tapersAgregados.reduce((sum, t) => sum + parseFloat(t.precio), 0);
-  const subtotalConTaper = subtotal + costoTaper;
-  const iva = subtotalConTaper * 0.10;
-  const total = subtotalConTaper + iva;
+  const costoTaper = (tapersAgregados || []).reduce((sum, t) => sum + parseFloat(t?.precio || 0), 0);
+  const totalNeto = subtotal + costoTaper;
 
-  return { subtotal, costoTaper, iva, total };
+  // Asumimos IVA incluido o no según lógica de negocio, aquí mantenemos 10% adicional si así está definido
+  // Si el total ya debería ser el subtotal, ajustamos. 
+  // Nota: Revisar si el total debe ser subtotal + iva o si el iva está dentro.
+  const iva = totalNeto * 0.10;
+  const total = totalNeto + iva;
+
+  return {
+    subtotal: parseFloat(subtotal.toFixed(2)),
+    costoTaper: parseFloat(costoTaper.toFixed(2)),
+    iva: parseFloat(iva.toFixed(2)),
+    total: parseFloat(total.toFixed(2))
+  };
 };
 
 export const formatearTiempo = (minutos, segundos) => {

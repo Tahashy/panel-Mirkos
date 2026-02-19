@@ -89,22 +89,36 @@ const ModalNuevoPedido = ({ restauranteId, restaurante = { nombre: 'Restaurante'
 
     const cargarDatosEdicion = async () => {
         try {
-            // Cargar items
+            // Cargar items con columnas correctas
             const { data: items, error } = await supabase
                 .from('pedido_items')
-                .select('*')
+                .select('*, nombre, precio')
                 .eq('pedido_id', pedidoAEditar.id);
 
             if (error) throw error;
 
-            // Formatear items para el carrito
-            const cartItems = items.map(item => ({
-                ...item,
-                uniqueId: item.id || Date.now() + Math.random(), // ID estable o nuevo
-                id: item.producto_id,
-                nombre: item.producto_nombre,
-                precio: item.precio_unitario // Asumimos precio base unitario guardado o derivado
-            }));
+            // Formatear items para el carrito con la misma lógica ultra-defensiva
+            const cartItems = items.map(item => {
+                const pReal = parseFloat(item.precio);
+                const pUnit = parseFloat(item.precio_unitario);
+                const pSub = parseFloat(item.subtotal);
+                const cant = parseInt(item.cantidad) || 1;
+
+                let precioFinal = 0;
+                if (!isNaN(pReal) && pReal > 0) precioFinal = pReal;
+                else if (!isNaN(pUnit) && pUnit > 0) precioFinal = pUnit;
+                else if (!isNaN(pSub) && pSub > 0) precioFinal = pSub / cant;
+
+                return {
+                    ...item,
+                    uniqueId: item.id || Date.now() + Math.random(),
+                    id: item.producto_id,
+                    nombre: item.nombre || item.producto_nombre,
+                    precio: precioFinal,
+                    cantidad: cant,
+                    agregados: Array.isArray(item.agregados) ? item.agregados : []
+                };
+            });
 
             setCarrito(cartItems);
             setItemsOriginales(cartItems.map(i => i.uniqueId)); // Snapshot IDs
@@ -125,9 +139,6 @@ const ModalNuevoPedido = ({ restauranteId, restaurante = { nombre: 'Restaurante'
             // Si tiene mesa
             if (pedidoAEditar.numero_mesa) {
                 setTipoPedido('mesa');
-                // Podríamos buscar la mesa real por número si necesitamos el objeto ID, 
-                // pero por ahora mostraremos el número
-                // setMesaSeleccionada({ numero_mesa: pedidoAEditar.numero_mesa });
             }
 
         } catch (error) {
@@ -153,12 +164,18 @@ const ModalNuevoPedido = ({ restauranteId, restaurante = { nombre: 'Restaurante'
         });
     }, [productos, categoriaSeleccionada, busqueda]);
 
-    // Totales
+    // Totales RECALCULADOS MANUALMENTE
     const totales = useMemo(() => {
-        const subtotal = carrito.reduce((acc, item) => acc + item.subtotal, 0);
-        const total = subtotal - parseFloat(descuento || 0) + parseFloat(propina || 0) + parseFloat(servicio || 0) + parseFloat(embalaje || 0);
+        const subtotalCalculado = carrito.reduce((acc, item) => {
+            const precioBase = parseFloat(item.precio || 0);
+            const cantidad = parseInt(item.cantidad || 0);
+            const precioAgregados = (item.agregados || []).reduce((s, a) => s + parseFloat(a?.precio || 0), 0);
+            return acc + ((precioBase + precioAgregados) * cantidad);
+        }, 0);
+
+        const total = subtotalCalculado - parseFloat(descuento || 0) + parseFloat(propina || 0) + parseFloat(servicio || 0) + parseFloat(embalaje || 0);
         const vuelto = montoRecibido ? parseFloat(montoRecibido) - total : 0;
-        return { subtotal, total, vuelto };
+        return { subtotal: subtotalCalculado, total, vuelto };
     }, [carrito, descuento, propina, servicio, embalaje, montoRecibido]);
 
     // Handlers
@@ -680,7 +697,7 @@ const ModalNuevoPedido = ({ restauranteId, restaurante = { nombre: 'Restaurante'
                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                             <span style={{ fontWeight: '600', color: '#374151', fontSize: '14px' }}>{item.nombre}</span>
                                             <span style={{ fontWeight: '600', color: '#374151', fontSize: '14px' }}>
-                                                {formatearMoneda(item.subtotal)}
+                                                {formatearMoneda(((parseFloat(item.precio || 0) + (item.agregados || []).reduce((s, a) => s + parseFloat(a?.precio || 0), 0)) * item.cantidad))}
                                             </span>
                                         </div>
                                         {item.notas && <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6B7280' }}>📝 {item.notas}</p>}
