@@ -243,6 +243,7 @@ const ModalNuevoPedido = ({ restauranteId, restaurante = { nombre: 'Restaurante'
                 const itemData = {
                     pedido_id: pedidoId,
                     producto_id: item.id,
+                    nombre: item.nombre,
                     cantidad: item.cantidad,
                 };
                 if (item.notas) itemData.notas = item.notas;

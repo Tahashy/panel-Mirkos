@@ -165,6 +165,7 @@ const ModalEditarPedido = ({ pedido, productos, onClose, onSuccess }) => {
             const items = carrito.map(item => ({
                 pedido_id: pedido.id,
                 producto_id: item.id,
+                nombre: item.nombre,
                 cantidad: item.cantidad,
                 agregados: item.agregados,
                 impreso: item.esNuevo ? false : true
