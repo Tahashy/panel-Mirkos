@@ -102,7 +102,7 @@ const Pagos = ({ restauranteId }) => {
                     color="#d946ef"
                 />
                 <StatsCard
-                    title="Bebidas"
+                    title="Gaseosas"
                     value={formatearMoneda(estadisticas?.totalBebidas || 0)}
                     icon={ShoppingBag}
                     color="#FF6B35"

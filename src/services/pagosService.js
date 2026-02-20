@@ -126,7 +126,7 @@ export const obtenerEstadisticas = async (restauranteId, fechaInicio, fechaFin) 
         };
 
         // Obtener total de categorías específicas vendidas en el periodo (en dinero)
-        const categoriesToTrack = ['Bebidas', 'Hamburguesas', 'Jugos'];
+        const categoriesToTrack = ['Bebidas', 'Gaseosas', 'Hamburguesas', 'Hamburguesa', 'Jugos'];
         const { data: dataCategorias } = await supabase
             .from('pedido_items')
             .select(`
@@ -153,9 +153,13 @@ export const obtenerEstadisticas = async (restauranteId, fechaInicio, fechaFin) 
                 const catNombre = item.productos?.categorias?.nombre;
                 const subtotal = parseFloat(item.subtotal || 0);
 
-                if (catNombre === 'Bebidas') estadisticas.totalBebidas += subtotal;
-                else if (catNombre === 'Hamburguesas') estadisticas.totalHamburguesas += subtotal;
-                else if (catNombre === 'Jugos') estadisticas.totalJugos += subtotal;
+                if (catNombre === 'Bebidas' || catNombre === 'Gaseosas') {
+                    estadisticas.totalBebidas += subtotal;
+                } else if (catNombre === 'Hamburguesas' || catNombre === 'Hamburguesa') {
+                    estadisticas.totalHamburguesas += subtotal;
+                } else if (catNombre === 'Jugos') {
+                    estadisticas.totalJugos += subtotal;
+                }
             });
         }
 
