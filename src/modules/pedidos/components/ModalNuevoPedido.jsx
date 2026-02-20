@@ -279,12 +279,19 @@ const ModalNuevoPedido = ({ restauranteId, restaurante = { nombre: 'Restaurante'
 
             // Insert items logic (shared)
             const itemsToInsert = carrito.map(item => {
+                const precioBase = parseFloat(item.precio || 0);
+                const precioAgregados = (item.agregados || []).reduce((s, a) => s + parseFloat(a?.precio || 0), 0);
+                const precioUnitario = precioBase + precioAgregados;
+                const subtotal = precioUnitario * parseInt(item.cantidad || 1);
+
                 const itemData = {
                     pedido_id: pedidoId,
                     producto_id: item.id,
                     nombre: item.nombre,
                     cantidad: item.cantidad,
-                    precio: item.precio,
+                    precio: item.precio, // Mantener por compatibilidad si es necesario
+                    precio_unitario: precioUnitario,
+                    subtotal: subtotal
                 };
                 if (item.notas) itemData.notas = item.notas;
                 if (item.agregados && item.agregados.length > 0) itemData.agregados = item.agregados;

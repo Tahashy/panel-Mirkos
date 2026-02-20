@@ -131,6 +131,9 @@ export const obtenerEstadisticas = async (restauranteId, fechaInicio, fechaFin) 
             .from('pedido_items')
             .select(`
                 subtotal,
+                cantidad,
+                precio_unitario,
+                precio,
                 productos:producto_id (
                     categorias:categoria_id (
                         nombre
@@ -151,7 +154,14 @@ export const obtenerEstadisticas = async (restauranteId, fechaInicio, fechaFin) 
             dataCategorias.forEach(item => {
                 // Navegación segura por las relaciones
                 const catNombre = item.productos?.categorias?.nombre?.toLowerCase() || '';
-                const subtotal = parseFloat(item.subtotal || 0);
+                let subtotal = parseFloat(item.subtotal || 0);
+
+                // Fallback para datos históricos
+                if (subtotal === 0) {
+                    const cant = parseFloat(item.cantidad || 0);
+                    const precio = parseFloat(item.precio_unitario || item.precio || 0);
+                    subtotal = cant * precio;
+                }
 
                 if (catNombre.includes('gaseosa') || catNombre.includes('bebida')) {
                     estadisticas.totalBebidas += subtotal;
