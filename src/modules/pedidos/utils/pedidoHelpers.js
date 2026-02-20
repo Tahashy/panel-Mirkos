@@ -78,7 +78,15 @@ export const formatearMoneda = (cantidad) => {
 
 export const formatearFechaHora = (fecha) => {
   if (!fecha) return '-';
-  const date = new Date(fecha);
+
+  // Si la fecha es un string y no tiene indicador de zona horaria, 
+  // asumimos que viene de Supabase en UTC
+  let dateStr = fecha;
+  if (typeof fecha === 'string' && !fecha.includes('Z') && !fecha.includes('+')) {
+    dateStr = fecha.replace(' ', 'T') + 'Z';
+  }
+
+  const date = new Date(dateStr);
   if (isNaN(date.getTime())) return '-';
 
   return new Intl.DateTimeFormat('es-PE', {
