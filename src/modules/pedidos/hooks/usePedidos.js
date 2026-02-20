@@ -25,7 +25,8 @@ export const usePedidos = (restauranteId) => {
             producto_nombre,
             agregados,
             nombre,
-            precio
+            precio,
+            impreso
           ),
           usuarios (
             nombre

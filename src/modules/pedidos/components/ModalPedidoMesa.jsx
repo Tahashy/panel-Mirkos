@@ -58,7 +58,7 @@ const ModalPedidoMesa = ({ mesa, productos, onClose, onSuccess }) => {
 
             const { data: itemsData, error: itemsError } = await supabase
                 .from('pedido_items')
-                .select('*, nombre, precio') // Asegurar campos correctos
+                .select('*, nombre, precio, impreso') // Asegurar campos correctos
                 .eq('pedido_id', pedidoData.id);
 
             if (itemsError) throw itemsError;
@@ -122,7 +122,7 @@ const ModalPedidoMesa = ({ mesa, productos, onClose, onSuccess }) => {
         try {
             const { data: itemsActualizados } = await supabase
                 .from('pedido_items')
-                .select('*, nombre, precio')
+                .select('*, nombre, precio, impreso')
                 .eq('pedido_id', pedido.id);
 
             // Usar el helper centralizado para recalcular
@@ -151,11 +151,21 @@ const ModalPedidoMesa = ({ mesa, productos, onClose, onSuccess }) => {
             showToast(`Enviando a impresora IP...`, 'info');
             let exitoTotal = false;
 
+            // Filtrar items si es cocina
+            const itemsParaImprimir = tipo === 'cocina'
+                ? items.filter(item => !item.impreso)
+                : items;
+
+            if (tipo === 'cocina' && itemsParaImprimir.length === 0) {
+                showToast('No hay items nuevos para cocina', 'info');
+                return;
+            }
+
             for (const imp of impresoras) {
                 try {
                     const ops = tipo === 'cocina'
-                        ? impresionService.formatearComanda(pedido)
-                        : impresionService.formatearTicket(pedido, { empresa: 'MIRKOS' }); // Fallback a nombre de restaurante
+                        ? impresionService.formatearComanda({ ...pedido, pedido_items: itemsParaImprimir })
+                        : impresionService.formatearTicket(pedido, { empresa: 'MIRKOS' });
 
                     await impresionService.enviarAlPlugin(ops, imp.ip);
                     exitoTotal = true;
@@ -166,6 +176,17 @@ const ModalPedidoMesa = ({ mesa, productos, onClose, onSuccess }) => {
 
             if (exitoTotal) {
                 showToast('Impreso en equipo térmico', 'success');
+
+                // Actualizar DB si fue cocina
+                if (tipo === 'cocina') {
+                    const idsParaMarcar = itemsParaImprimir.map(i => i.id);
+                    await supabase.from('pedido_items').update({ impreso: true }).in('id', idsParaMarcar);
+
+                    // Actualizar estado local
+                    setItems(prev => prev.map(it =>
+                        idsParaMarcar.includes(it.id) ? { ...it, impreso: true } : it
+                    ));
+                }
                 return;
             }
         }
