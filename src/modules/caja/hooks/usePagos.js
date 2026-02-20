@@ -9,9 +9,16 @@ export const usePagos = (restauranteId) => {
     const [pagos, setPagos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [estadisticas, setEstadisticas] = useState(null);
+    const getLocalDate = () => {
+        const d = new Date();
+        const offset = d.getTimezoneOffset();
+        const localDate = new Date(d.getTime() - (offset * 60 * 1000));
+        return localDate.toISOString().split('T')[0];
+    };
+
     const [filtros, setFiltros] = useState({
-        fechaInicio: new Date().toISOString().split('T')[0], // Hoy por defecto
-        fechaFin: new Date().toISOString().split('T')[0],
+        fechaInicio: getLocalDate(), // Hoy en hora local
+        fechaFin: getLocalDate(),
         metodoPago: 'todos',
         tipoServicio: 'todos',
         limit: 100
@@ -30,12 +37,9 @@ export const usePagos = (restauranteId) => {
             setPagos(dataPagos || []);
 
             // Cargar Estadísticas
-            // Ajustar fechas para incluir todo el día final (hasta 23:59:59)
-            const fechaFinAjustada = new Date(filtros.fechaFin);
-            fechaFinAjustada.setHours(23, 59, 59, 999);
-
-            const fechaInicioAjustada = new Date(filtros.fechaInicio);
-            fechaInicioAjustada.setHours(0, 0, 0, 0);
+            // Ajustar fechas para incluir todo el día final (hasta 23:59:59) en hora local
+            const fechaFinAjustada = new Date(`${filtros.fechaFin}T23:59:59`);
+            const fechaInicioAjustada = new Date(`${filtros.fechaInicio}T00:00:00`);
 
             const { data: dataStats, error: errorStats } = await obtenerEstadisticas(
                 restauranteId,

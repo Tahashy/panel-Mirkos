@@ -33,9 +33,10 @@ export const obtenerPagos = async (restauranteId, filtros = {}) => {
 
         // Aplicar filtros
         if (filtros.fechaInicio && filtros.fechaFin) {
+            // Asegurar que el rango cubra todo el día (00:00:00 a 23:59:59)
             query = query
-                .gte('fecha_finalizacion', filtros.fechaInicio)
-                .lte('fecha_finalizacion', filtros.fechaFin);
+                .gte('fecha_finalizacion', `${filtros.fechaInicio}T00:00:00`)
+                .lte('fecha_finalizacion', `${filtros.fechaFin}T23:59:59`);
         }
 
         if (filtros.metodoPago && filtros.metodoPago !== 'todos') {
