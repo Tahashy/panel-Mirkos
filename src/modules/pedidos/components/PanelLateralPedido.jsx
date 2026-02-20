@@ -6,12 +6,14 @@ import { X, Printer, Edit, Clock, CheckCircle, AlertCircle, Package as PackageIc
 import { getEstadoColor, generarLinkWhatsapp, formatearSoloHora } from '../utils/pedidoHelpers';
 import DropdownButton from './DropdownButton';
 import TicketImpresion from './TicketImpresion';
+import { supabase } from '../../../services/supabaseClient';
 import { showToast } from '../../../components/Toast';
 import { impresionService } from '../../../services/impresionService';
 import { impresorasService } from '../../../services/impresorasService';
 
 const PanelLateralPedido = ({ pedido, restaurante, onClose, onCambiarEstado, onEditar, onEliminar, isAdmin }) => {
     const [vistaImpresion, setVistaImpresion] = useState(null);
+    const [itemsFiltrados, setItemsFiltrados] = useState(null);
     const componentRef = useRef();
     const isMobile = window.innerWidth < 768;
 
@@ -33,10 +35,20 @@ const PanelLateralPedido = ({ pedido, restaurante, onClose, onCambiarEstado, onE
             showToast(`Enviando a impresora IP...`, 'info');
             let exitoTotal = false;
 
+            // Filtrar items si es cocina
+            const itemsParaImprimir = tipo === 'cocina'
+                ? (pedido.pedido_items || []).filter(item => !item.impreso)
+                : (pedido.pedido_items || []);
+
+            if (tipo === 'cocina' && itemsParaImprimir.length === 0) {
+                showToast('No hay items nuevos para cocina', 'info');
+                return;
+            }
+
             for (const imp of impresoras) {
                 try {
                     const ops = tipo === 'cocina'
-                        ? impresionService.formatearComanda(pedido)
+                        ? impresionService.formatearComanda({ ...pedido, pedido_items: itemsParaImprimir })
                         : impresionService.formatearTicket(pedido, { empresa: restaurante?.nombre });
 
                     await impresionService.enviarAlPlugin(ops, imp.ip);
@@ -48,11 +60,18 @@ const PanelLateralPedido = ({ pedido, restaurante, onClose, onCambiarEstado, onE
 
             if (exitoTotal) {
                 showToast('Impreso en equipo térmico', 'success');
-                return; // Evitamos el fallback si funcionó
+
+                // Actualizar DB si fue cocina
+                if (tipo === 'cocina') {
+                    const ids = itemsParaImprimir.map(i => i.id);
+                    await supabase.from('pedido_items').update({ impreso: true }).in('id', ids);
+                }
+                return;
             }
         }
 
         // 2. Fallback: Impresión de navegador (Original)
+        setItemsFiltrados(itemsParaImprimir);
         setVistaImpresion(tipo);
 
         // Esperar render
@@ -72,6 +91,16 @@ const PanelLateralPedido = ({ pedido, restaurante, onClose, onCambiarEstado, onE
                         printWindow.print();
                         printWindow.close();
                         setVistaImpresion(null);
+                        setItemsFiltrados(null);
+
+                        // Actualizar DB si fue cocina
+                        if (tipo === 'cocina') {
+                            const ids = itemsParaImprimir.map(i => i.id);
+                            supabase.from('pedido_items').update({ impreso: true }).in('id', ids)
+                                .then(({ error }) => {
+                                    if (error) console.error('Error marcando como impreso:', error);
+                                });
+                        }
                     }, 250);
                 } else {
                     showToast('Habilita popups para imprimir', 'warning');
@@ -726,6 +755,7 @@ const PanelLateralPedido = ({ pedido, restaurante, onClose, onCambiarEstado, onE
                     pedido={pedido}
                     restaurante={restaurante || { nombre: 'Restaurante', direccion: '', telefono: '' }}
                     tipoImpresion={vistaImpresion}
+                    itemsFiltrados={itemsFiltrados}
                 />
             </div>
         </>,

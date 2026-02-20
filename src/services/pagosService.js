@@ -20,7 +20,8 @@ export const obtenerPagos = async (restauranteId, filtros = {}) => {
           agregados,
           notas,
           nombre,
-          precio
+          precio,
+          impreso
         ),
         usuarios (
           nombre
@@ -221,7 +222,8 @@ export const obtenerDetallePago = async (pedidoId) => {
           agregados,
           notas,
           nombre,
-          precio
+          precio,
+          impreso
         ),
         usuarios (
           id,

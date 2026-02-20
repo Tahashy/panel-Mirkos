@@ -116,7 +116,8 @@ const ModalNuevoPedido = ({ restauranteId, restaurante = { nombre: 'Restaurante'
                     nombre: item.nombre || item.producto_nombre,
                     precio: precioFinal,
                     cantidad: cant,
-                    agregados: Array.isArray(item.agregados) ? item.agregados : []
+                    agregados: Array.isArray(item.agregados) ? item.agregados : [],
+                    impreso: item.impreso || false
                 };
             });
 
@@ -184,7 +185,7 @@ const ModalNuevoPedido = ({ restauranteId, restaurante = { nombre: 'Restaurante'
     };
 
     const confirmAddProducto = (itemPersonalizado) => {
-        setCarrito([...carrito, { ...itemPersonalizado, uniqueId: Date.now() }]);
+        setCarrito([...carrito, { ...itemPersonalizado, uniqueId: Date.now(), impreso: false }]);
         setProductoAPersonalizar(null);
         showToast('Producto agregado', 'success');
     };
@@ -290,7 +291,8 @@ const ModalNuevoPedido = ({ restauranteId, restaurante = { nombre: 'Restaurante'
                     nombre: item.nombre,
                     cantidad: item.cantidad,
                     precio: item.precio,
-                    subtotal: subtotal // Si esto también falla, es que subtotal es generada
+                    subtotal: subtotal,
+                    impreso: item.impreso || false
                 };
                 if (item.notas) itemData.notas = item.notas;
                 if (item.agregados && item.agregados.length > 0) itemData.agregados = item.agregados;
@@ -369,24 +371,17 @@ const ModalNuevoPedido = ({ restauranteId, restaurante = { nombre: 'Restaurante'
     const handlePrint = async (tipo) => {
         let itemsParaImprimir = carrito;
 
-        // Lógica inteligente para cocina en modo edición
-        if (tipo === 'cocina' && isEditing) {
-            // Filtrar solo los items que NO estaban en el pedido original (o modificados si tuvieramos esa lógica)
-            // Aquí asumimos que itemsOriginales tiene los uniqueId de los que ya existían
-            const nuevosItems = carrito.filter(item => !itemsOriginales.includes(item.uniqueId));
+        // Lógica inteligente para cocina: solo imprimir lo NO impreso
+        if (tipo === 'cocina') {
+            const noImpresos = carrito.filter(item => !item.impreso);
 
-            if (nuevosItems.length > 0) {
-                // Si hay nuevos, preguntamos o imprimimos solo nuevos por defecto para cocina
-                // Podríamos hacerlo configurable, pero la lógica solicitada es "mejorar esa lógica"
-                itemsParaImprimir = nuevosItems;
-                showToast(`Imprimiendo ${nuevosItems.length} items nuevos para cocina`, 'info');
+            if (noImpresos.length > 0) {
+                itemsParaImprimir = noImpresos;
+                showToast(`Imprimiendo ${noImpresos.length} items nuevos para cocina`, 'info');
             } else {
                 showToast('No hay items nuevos para cocina', 'info');
-                // Si el usuario fuerza imprimir cocina sin cambios, quizás quiera reimprimir todo?
-                // Por ahora, si no hay nuevos, imprimimos todo pero avisamos.
-                // O mejor, imprimimos todo si confirmamos?
-                // El requerimiento dice: "imprimir solo los agregados".
-                // Si no hay nuevos, imprimimos todo por si acaso sea una reimpresión manual.
+                // Si el usuario insiste, podríamos permitir reimprimir todo, pero la lógica pide "solo el agregado"
+                return;
             }
         }
 
@@ -396,6 +391,14 @@ const ModalNuevoPedido = ({ restauranteId, restaurante = { nombre: 'Restaurante'
         // Esperar un ciclo de render para que TicketImpresion se actualice con los nuevos props
         setTimeout(() => {
             imprimir(ticketRef);
+
+            // Marcar como impresos en el estado local después de mandar a imprimir
+            if (tipo === 'cocina') {
+                const idsImpresos = itemsParaImprimir.map(i => i.uniqueId);
+                setCarrito(prev => prev.map(item =>
+                    idsImpresos.includes(item.uniqueId) ? { ...item, impreso: true } : item
+                ));
+            }
         }, 100);
     };
 
