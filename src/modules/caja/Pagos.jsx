@@ -6,7 +6,7 @@ import ModalDetallePago from './components/ModalDetallePago';
 import {
     Search, Calendar, Filter, Download,
     CreditCard, DollarSign, TrendingUp, ShoppingBag,
-    Eye, Smartphone
+    Eye, Smartphone, Coffee, Utensils
 } from 'lucide-react';
 import { formatearMoneda, formatearFechaHora } from '../pedidos/utils/pedidoHelpers';
 
@@ -106,6 +106,20 @@ const Pagos = ({ restauranteId }) => {
                     value={formatearMoneda(estadisticas?.totalBebidas || 0)}
                     icon={ShoppingBag}
                     color="#FF6B35"
+                    subtext="Total recaudado"
+                />
+                <StatsCard
+                    title="Hamburguesas"
+                    value={formatearMoneda(estadisticas?.totalHamburguesas || 0)}
+                    icon={Utensils}
+                    color="#f43f5e"
+                    subtext="Total recaudado"
+                />
+                <StatsCard
+                    title="Jugos"
+                    value={formatearMoneda(estadisticas?.totalJugos || 0)}
+                    icon={Coffee}
+                    color="#06b6d4"
                     subtext="Total recaudado"
                 />
             </div>

@@ -107,6 +107,8 @@ export const obtenerEstadisticas = async (restauranteId, fechaInicio, fechaFin) 
             ticketPromedio: 0,
             totalPropinas: 0,
             totalBebidas: 0,
+            totalHamburguesas: 0,
+            totalJugos: 0,
             porMetodoPago: {
                 efectivo: 0,
                 tarjeta: 0,
@@ -122,8 +124,9 @@ export const obtenerEstadisticas = async (restauranteId, fechaInicio, fechaFin) 
             }
         };
 
-        // Obtener total de bebidas vendidas en el periodo (en dinero)
-        const { data: dataBebidas } = await supabase
+        // Obtener total de categorías específicas vendidas en el periodo (en dinero)
+        const categoriesToTrack = ['Bebidas', 'Hamburguesas', 'Jugos'];
+        const { data: dataCategorias } = await supabase
             .from('pedido_items')
             .select(`
                 subtotal,
@@ -142,10 +145,17 @@ export const obtenerEstadisticas = async (restauranteId, fechaInicio, fechaFin) 
             .eq('pedidos.estado', 'entregado')
             .gte('pedidos.fecha_finalizacion', fechaInicio)
             .lte('pedidos.fecha_finalizacion', fechaFin)
-            .ilike('productos.categorias.nombre', 'Bebidas');
+            .in('productos.categorias.nombre', categoriesToTrack);
 
-        if (dataBebidas) {
-            estadisticas.totalBebidas = dataBebidas.reduce((sum, item) => sum + parseFloat(item.subtotal || 0), 0);
+        if (dataCategorias) {
+            dataCategorias.forEach(item => {
+                const catNombre = item.productos?.categorias?.nombre;
+                const subtotal = parseFloat(item.subtotal || 0);
+
+                if (catNombre === 'Bebidas') estadisticas.totalBebidas += subtotal;
+                else if (catNombre === 'Hamburguesas') estadisticas.totalHamburguesas += subtotal;
+                else if (catNombre === 'Jugos') estadisticas.totalJugos += subtotal;
+            });
         }
 
         data.forEach(pedido => {

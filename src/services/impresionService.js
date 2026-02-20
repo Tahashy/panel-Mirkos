@@ -1,6 +1,6 @@
 /**
  * Servicio de Impresión para Impresoras Térmicas usando QZ Tray
- * Proporciona una conexión estable vía Websockets y soporte para comandos RAW (ESC/POS).
+ * Optimizado para Mirkos Chicken con formatos de Comanda y Ticket profesional.
  */
 import * as qz from 'qz-tray';
 
@@ -33,13 +33,8 @@ export const impresionService = {
     enviarAlPlugin: async (operaciones, nombreImpresora) => {
         try {
             await impresionService.conectar();
-
             const config = qz.configs.create(nombreImpresora);
-
-            // QZ Tray espera los comandos ESC/POS tal cual o a través de su API de dibujo
-            // Para máxima compatibilidad con el código anterior, convertimos los comandos
             await qz.print(config, operaciones);
-
             return true;
         } catch (error) {
             console.error('Error de impresión QZ:', error);
@@ -48,12 +43,10 @@ export const impresionService = {
     },
 
     /**
-     * Genera comandos ESC/POS para QZ Tray
-     * Nota: QZ usa caracteres de escape estándar o Hex.
+     * Genera el formato de TICKET DE VENTA (Caja)
+     * Basado en el diseño visual de Mirkos Chicken
      */
     formatearTicket: (pedido, opciones = {}) => {
-        // Estructura de datos para QZ Tray (RAW commands)
-        // \x1B es el caracter ESC (decimal 27)
         const char = {
             init: '\x1B\x40',
             center: '\x1B\x61\x01',
@@ -61,41 +54,69 @@ export const impresionService = {
             right: '\x1B\x61\x02',
             boldOn: '\x1B\x45\x01',
             boldOff: '\x1B\x45\x00',
+            doubleH: '\x1B\x21\x10',
+            normal: '\x1B\x21\x00',
             cut: '\x1D\x56\x41\x03'
         };
 
-        let data = "";
-        data += char.init;
-        data += char.center + char.boldOn + (opciones.empresa || 'MIRKOS').toUpperCase() + "\n" + char.boldOff;
-        data += "Pedido #" + pedido.numero_pedido + "\n";
-        data += "Fecha: " + new Date(pedido.created_at).toLocaleString() + "\n";
-        data += "--------------------------------\n";
+        let d = "";
+        d += char.init;
 
-        data += char.left;
+        // --- ENCABEZADO EMPRESA ---
+        d += char.center + char.boldOn + "Mirkos Chicken\n" + char.boldOff;
+        d += "Av. Manuel Dorrego Mz-5 Lt-14\n";
+        d += "Tel: 978501075\n";
+        d += "--------------------------------\n";
+
+        // --- INFO PEDIDO ---
+        d += char.left;
+        d += char.boldOn + "Pedido: " + char.boldOff + "#" + (pedido.numero_pedido || pedido.id.substring(0, 8)) + "\n";
+        d += char.boldOn + "Fecha: " + char.boldOff + new Date(pedido.created_at).toLocaleString() + "\n";
+        if (pedido.cliente_nombre || pedido.cliente?.nombre) {
+            d += char.boldOn + "Cliente: " + char.boldOff + (pedido.cliente_nombre || pedido.cliente?.nombre) + "\n";
+        }
+        d += char.boldOn + "Tipo: " + char.boldOff + (pedido.tipo || 'LOCAL').toUpperCase() + "\n";
+        d += "--------------------------------\n";
+
+        // --- ITEMS ---
         (pedido.pedido_items || []).forEach(item => {
-            const nombre = (item.nombre || item.producto_nombre || 'Producto').substring(0, 20);
-            const cant = item.cantidad.toString().padStart(2, ' ');
-            const precio = (parseFloat(item.precio || item.precio_unitario || 0) * item.cantidad).toFixed(2);
-            data += `${cant}x ${nombre.padEnd(20, ' ')} ${precio.padStart(7, ' ')}\n`;
+            const nombre = (item.nombre || item.producto_nombre || 'Producto').substring(0, 22);
+            const cant = item.cantidad;
+            const precioTotal = (parseFloat(item.precio || item.precio_unitario || 0) * item.cantidad).toFixed(2);
+
+            // Línea 1: Cantidad x Nombre
+            d += `${cant} x ${nombre}\n`;
+            // Línea 2: Precio alineado a la derecha
+            d += char.right + `S/ ${precioTotal}\n` + char.left;
 
             if (item.agregados && item.agregados.length > 0) {
                 item.agregados.forEach(ag => {
-                    data += `   + ${ag.nombre.substring(0, 25)}\n`;
+                    d += `  + ${ag.nombre}\n`;
                 });
             }
         });
 
-        data += "--------------------------------\n";
-        data += char.right + char.boldOn + "TOTAL: $" + parseFloat(pedido.total || 0).toFixed(2) + "\n" + char.boldOff;
+        d += "--------------------------------\n";
 
-        data += char.center + "\n¡Gracias por su preferencia!\n\n\n";
-        data += char.cut;
+        // --- TOTALES ---
+        d += char.right;
+        const totalNum = parseFloat(pedido.total || 0).toFixed(2);
+        d += `Subtotal: S/ ${totalNum}\n`;
+        d += char.boldOn + `TOTAL: S/ ${totalNum}\n` + char.boldOff;
+        if (pedido.metodo_pago) {
+            d += `Método pago: ${pedido.metodo_pago.toUpperCase()}\n`;
+        }
 
-        return [data]; // QZ espera un array
+        // --- PIE ---
+        d += "\n" + char.center + "¡Gracias por su visita!\n\n\n";
+        d += char.cut;
+
+        return [d];
     },
 
     /**
-     * Genera comandos para comanda de cocina
+     * Genera el formato de COMANDA (Cocina)
+     * Basado en el diseño visual de Mirkos Chicken
      */
     formatearComanda: (pedido) => {
         const char = {
@@ -105,35 +126,48 @@ export const impresionService = {
             boldOn: '\x1B\x45\x01',
             boldOff: '\x1B\x45\x00',
             doubleH: '\x1B\x21\x10',
-            normal: '\x1B\x21\x00',
+            doubleSize: '\x1D\x21\x11', // Double width and height
+            normal: '\x1D\x21\x00',
             cut: '\x1D\x56\x41\x03'
         };
 
-        let data = "";
-        data += char.init;
-        data += char.center + char.boldOn + "*** COMANDA DE COCINA ***\n" + char.boldOff;
-        data += char.doubleH + "PEDIDO #" + pedido.numero_pedido + char.normal + "\n";
+        let d = "";
+        d += char.init;
+
+        // --- TITULO COMANDA ---
+        d += char.center + char.doubleSize + "COMANDA COCINA" + char.normal + "\n\n";
+
+        // --- INFO PEDIDO ---
+        d += char.left;
+        d += char.boldOn + "Pedido: " + char.boldOff + "#" + (pedido.numero_pedido || pedido.id.substring(0, 8)) + "\n";
+        d += char.boldOn + "Fecha: " + char.boldOff + new Date(pedido.created_at).toLocaleString() + "\n";
+        d += char.boldOn + "Tipo: " + char.boldOff + (pedido.tipo || 'LOCAL').toUpperCase() + "\n";
 
         if (pedido.tipo === 'mesa') {
-            data += "MESA: " + (pedido.mesa_nombre || 'N/A') + "\n";
+            d += char.boldOn + "MESA: " + char.boldOff + (pedido.mesa_nombre || 'N/A') + "\n";
         }
-        data += "--------------------------------\n";
 
-        data += char.left;
+        d += "--------------------------------\n";
+
+        // --- ITEMS (RESALTADOS) ---
         (pedido.pedido_items || []).forEach(item => {
-            data += char.boldOn + item.cantidad + "x " + (item.nombre || item.producto_nombre) + "\n" + char.boldOff;
+            d += char.boldOn + `${item.cantidad} x ${item.nombre || item.producto_nombre}` + char.boldOff + "\n";
+
             if (item.agregados && item.agregados.length > 0) {
                 item.agregados.forEach(ag => {
-                    data += `  > ${ag.nombre}\n`;
+                    d += `  > ${ag.nombre}\n`;
                 });
             }
             if (item.notas) {
-                data += `  NOTA: ${item.notas}\n`;
+                d += char.boldOn + `  NOTA: ${item.notas}` + char.boldOff + "\n";
             }
         });
 
-        data += "\n\n" + char.cut;
+        // --- PIE ---
+        d += "--------------------------------\n";
+        d += char.center + "--- FIN COMANDA ---\n\n\n";
+        d += char.cut;
 
-        return [data];
+        return [d];
     }
 };
