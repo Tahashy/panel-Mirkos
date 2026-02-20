@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { X, CheckCircle, Utensils, Package, Truck, ShoppingBag } from 'lucide-react';
-import { getEstadoColor } from '../utils/pedidoHelpers';
+import { getEstadoColor, formatearSoloHora } from '../utils/pedidoHelpers';
 
 const ModalDetallePedido = ({ pedido, onClose, onCambiarEstado }) => {
   const isMobile = window.innerWidth < 768;
@@ -213,10 +213,7 @@ const ModalDetallePedido = ({ pedido, onClose, onCambiarEstado }) => {
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: '14px', color: '#718096' }}>Hora:</span>
                   <span style={{ fontSize: '14px', fontWeight: '600', color: '#1a202c' }}>
-                    {new Date(pedido.created_at).toLocaleTimeString('es-ES', {
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
+                    {formatearSoloHora(pedido.created_at)}
                   </span>
                 </div>
                 {pedido.usuarios?.nombre && (

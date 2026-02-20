@@ -99,6 +99,26 @@ export const formatearFechaHora = (fecha) => {
   }).format(date);
 };
 
+export const formatearSoloHora = (fecha) => {
+  if (!fecha) return '-';
+
+  // Si la fecha es un string y no tiene indicador de zona horaria, 
+  // asumimos que viene de Supabase en UTC
+  let dateStr = fecha;
+  if (typeof fecha === 'string' && !fecha.includes('Z') && !fecha.includes('+')) {
+    dateStr = fecha.replace(' ', 'T') + 'Z';
+  }
+
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '-';
+
+  return date.toLocaleTimeString('es-ES', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+};
+
 /**
  * Genera el enlace de WhatsApp con el mensaje preformateado del pedido.
  * @param {Object} pedido - Objeto completo del pedido

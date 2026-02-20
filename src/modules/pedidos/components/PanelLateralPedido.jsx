@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { X, Printer, Edit, Clock, CheckCircle, AlertCircle, Package as PackageIcon } from 'lucide-react';
-import { getEstadoColor, generarLinkWhatsapp } from '../utils/pedidoHelpers';
+import { getEstadoColor, generarLinkWhatsapp, formatearSoloHora } from '../utils/pedidoHelpers';
 import DropdownButton from './DropdownButton';
 import TicketImpresion from './TicketImpresion';
 import { showToast } from '../../../components/Toast';
@@ -466,10 +466,7 @@ const PanelLateralPedido = ({ pedido, restaurante, onClose, onCambiarEstado, onE
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <span style={{ fontSize: '14px', color: '#718096' }}>Hora:</span>
                                 <span style={{ fontSize: '14px', fontWeight: '600', color: '#1a202c' }}>
-                                    {new Date(pedido.created_at).toLocaleTimeString('es-ES', {
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                    })}
+                                    {formatearSoloHora(pedido.created_at)}
                                 </span>
                             </div>
                         </div>
