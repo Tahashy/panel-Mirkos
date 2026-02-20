@@ -152,13 +152,14 @@ const ModalPedidoMesa = ({ mesa, productos, onClose, onSuccess }) => {
             let exitoTotal = false;
 
             // Filtrar items si es cocina
-            const itemsParaImprimir = tipo === 'cocina'
+            let itemsParaImprimir = tipo === 'cocina'
                 ? items.filter(item => !item.impreso)
                 : items;
 
             if (tipo === 'cocina' && itemsParaImprimir.length === 0) {
-                showToast('No hay items nuevos para cocina', 'info');
-                return;
+                // Reimprimir todo si no hay nuevos
+                itemsParaImprimir = items;
+                showToast('Reimprimiendo comanda completa', 'info');
             }
 
             for (const imp of impresoras) {

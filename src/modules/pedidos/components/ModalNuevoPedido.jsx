@@ -371,7 +371,7 @@ const ModalNuevoPedido = ({ restauranteId, restaurante = { nombre: 'Restaurante'
     const handlePrint = async (tipo) => {
         let itemsParaImprimir = carrito;
 
-        // Lógica inteligente para cocina: solo imprimir lo NO impreso
+        // Lógica inteligente para cocina: solo imprimir lo NO impreso, o TODO si ya está todo impreso
         if (tipo === 'cocina') {
             const noImpresos = carrito.filter(item => !item.impreso);
 
@@ -379,9 +379,9 @@ const ModalNuevoPedido = ({ restauranteId, restaurante = { nombre: 'Restaurante'
                 itemsParaImprimir = noImpresos;
                 showToast(`Imprimiendo ${noImpresos.length} items nuevos para cocina`, 'info');
             } else {
-                showToast('No hay items nuevos para cocina', 'info');
-                // Si el usuario insiste, podríamos permitir reimprimir todo, pero la lógica pide "solo el agregado"
-                return;
+                // Si no hay nuevos, reimprimimos TODO el pedido para cocina
+                itemsParaImprimir = carrito;
+                showToast('Reimprimiendo comanda completa', 'info');
             }
         }
 

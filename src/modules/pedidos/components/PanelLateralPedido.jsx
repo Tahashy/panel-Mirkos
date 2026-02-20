@@ -28,13 +28,14 @@ const PanelLateralPedido = ({ pedido, restaurante, onClose, onCambiarEstado, onE
 
     const handleImprimir = async (tipo) => {
         // Preparar items
-        const itemsParaImprimir = tipo === 'cocina'
+        let itemsParaImprimir = tipo === 'cocina'
             ? (pedido.pedido_items || []).filter(item => !item.impreso)
             : (pedido.pedido_items || []);
 
         if (tipo === 'cocina' && itemsParaImprimir.length === 0) {
-            showToast('No hay items nuevos para cocina', 'info');
-            return;
+            // Si ya se imprimió todo, reimprimimos el pedido completo para cocina
+            itemsParaImprimir = (pedido.pedido_items || []);
+            showToast('Reimprimiendo comanda completa', 'info');
         }
 
         // 1. Intentar impresión térmica IP
