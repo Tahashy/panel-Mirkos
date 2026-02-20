@@ -126,17 +126,17 @@ export const obtenerEstadisticas = async (restauranteId, fechaInicio, fechaFin) 
         };
 
         // Obtener total de categorías específicas vendidas en el periodo (en dinero)
-        const categoriesToTrack = ['Bebidas', 'Gaseosas', 'Hamburguesas', 'Hamburguesa', 'Jugos'];
+        // Usamos alias explícitos para asegurar que la relación se resuelva correctamente
         const { data: dataCategorias } = await supabase
             .from('pedido_items')
             .select(`
                 subtotal,
-                productos!inner (
-                    categorias!inner (
+                productos:producto_id (
+                    categorias:categoria_id (
                         nombre
                     )
                 ),
-                pedidos!inner (
+                pedidos:pedido_id !inner (
                     restaurante_id,
                     estado,
                     fecha_finalizacion
@@ -145,19 +145,19 @@ export const obtenerEstadisticas = async (restauranteId, fechaInicio, fechaFin) 
             .eq('pedidos.restaurante_id', restauranteId)
             .eq('pedidos.estado', 'entregado')
             .gte('pedidos.fecha_finalizacion', fechaInicio)
-            .lte('pedidos.fecha_finalizacion', fechaFin)
-            .in('productos.categorias.nombre', categoriesToTrack);
+            .lte('pedidos.fecha_finalizacion', fechaFin);
 
         if (dataCategorias) {
             dataCategorias.forEach(item => {
-                const catNombre = item.productos?.categorias?.nombre;
+                // Navegación segura por las relaciones
+                const catNombre = item.productos?.categorias?.nombre?.toLowerCase() || '';
                 const subtotal = parseFloat(item.subtotal || 0);
 
-                if (catNombre === 'Bebidas' || catNombre === 'Gaseosas') {
+                if (catNombre.includes('gaseosa') || catNombre.includes('bebida')) {
                     estadisticas.totalBebidas += subtotal;
-                } else if (catNombre === 'Hamburguesas' || catNombre === 'Hamburguesa') {
+                } else if (catNombre.includes('hamburguesa')) {
                     estadisticas.totalHamburguesas += subtotal;
-                } else if (catNombre === 'Jugos') {
+                } else if (catNombre.includes('jugo')) {
                     estadisticas.totalJugos += subtotal;
                 }
             });
