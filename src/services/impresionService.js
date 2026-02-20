@@ -139,12 +139,13 @@ export const impresionService = {
 
         // --- INFO PEDIDO ---
         d += char.left;
-        d += char.boldOn + "Pedido: " + char.boldOff + "#" + (pedido.numero_pedido || pedido.id.substring(0, 8)) + "\n";
-        d += char.boldOn + "Fecha: " + char.boldOff + new Date(pedido.created_at).toLocaleString() + "\n";
+        d += char.boldOn + "Pedido: " + char.boldOff + "#" + (pedido.numero_pedido || pedido.id?.substring(0, 8) || 'N/A') + "\n";
+        d += char.boldOn + "Fecha: " + char.boldOff + new Date().toLocaleString() + "\n";
+        d += char.boldOn + "Cliente: " + char.boldOff + (pedido.cliente_nombre || 'General') + "\n";
         d += char.boldOn + "Tipo: " + char.boldOff + (pedido.tipo || 'LOCAL').toUpperCase() + "\n";
 
-        if (pedido.tipo === 'mesa') {
-            d += char.boldOn + "MESA: " + char.boldOff + (pedido.mesa_nombre || 'N/A') + "\n";
+        if (pedido.numero_mesa || pedido.mesa) {
+            d += char.boldOn + "MESA: " + char.boldOff + (pedido.numero_mesa || pedido.mesa) + "\n";
         }
 
         d += "--------------------------------\n";
