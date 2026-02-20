@@ -1,126 +1,139 @@
 /**
- * Servicio de Impresión para Impresoras Térmicas (ESC/POS)
- * Utiliza el Plugin de Impresión de Parzibyte como intermediario.
+ * Servicio de Impresión para Impresoras Térmicas usando QZ Tray
+ * Proporciona una conexión estable vía Websockets y soporte para comandos RAW (ESC/POS).
  */
-
-const PLUGIN_URL = 'http://localhost:8080/imprimir';
+import * as qz from 'qz-tray';
 
 export const impresionService = {
     /**
-     * Envía una lista de comandos al plugin local
+     * Asegura que exista una conexión activa con el agente QZ Tray
      */
-    enviarAlPlugin: async (operaciones, ipImpresora) => {
+    conectar: async () => {
         try {
-            const payload = {
-                operaciones: operaciones,
-                nombreImpresora: ipImpresora, // El plugin de parzibyte permite usar la IP como nombre si es de red
-                serial: ""
-            };
-
-            const response = await fetch(PLUGIN_URL, {
-                method: 'POST',
-                body: JSON.stringify(payload)
-            });
-
-            const result = await response.json();
-            if (!result.ok) throw new Error(result.message || 'Error en el plugin');
+            if (qz.websocket.isActive()) return true;
+            await qz.websocket.connect();
             return true;
         } catch (error) {
-            console.error('Error de impresión:', error);
+            console.error('Error al conectar con QZ Tray:', error);
+            throw new Error('QZ Tray no está ejecutándose. Por favor ábrelo.');
+        }
+    },
+
+    /**
+     * Busca impresoras instaladas en el Sistema Operativo
+     */
+    buscarImpresoras: async () => {
+        await impresionService.conectar();
+        return await qz.printers.find();
+    },
+
+    /**
+     * Envía una lista de comandos RAW a una impresora específica
+     */
+    enviarAlPlugin: async (operaciones, nombreImpresora) => {
+        try {
+            await impresionService.conectar();
+
+            const config = qz.configs.create(nombreImpresora);
+
+            // QZ Tray espera los comandos ESC/POS tal cual o a través de su API de dibujo
+            // Para máxima compatibilidad con el código anterior, convertimos los comandos
+            await qz.print(config, operaciones);
+
+            return true;
+        } catch (error) {
+            console.error('Error de impresión QZ:', error);
             throw error;
         }
     },
 
     /**
-     * Genera comandos básicos ESC/POS para un ticket de pedido
+     * Genera comandos ESC/POS para QZ Tray
+     * Nota: QZ usa caracteres de escape estándar o Hex.
      */
     formatearTicket: (pedido, opciones = {}) => {
-        const ops = [];
+        // Estructura de datos para QZ Tray (RAW commands)
+        // \x1B es el caracter ESC (decimal 27)
+        const char = {
+            init: '\x1B\x40',
+            center: '\x1B\x61\x01',
+            left: '\x1B\x61\x00',
+            right: '\x1B\x61\x02',
+            boldOn: '\x1B\x45\x01',
+            boldOff: '\x1B\x45\x00',
+            cut: '\x1D\x56\x41\x03'
+        };
 
-        // Inicializar
-        ops.push({ nombre: "Iniciar", argumentos: [] });
-        ops.push({ nombre: "EstablecerAlineacion", argumentos: [1] }); // Centro
+        let data = "";
+        data += char.init;
+        data += char.center + char.boldOn + (opciones.empresa || 'MIRKOS').toUpperCase() + "\n" + char.boldOff;
+        data += "Pedido #" + pedido.numero_pedido + "\n";
+        data += "Fecha: " + new Date(pedido.created_at).toLocaleString() + "\n";
+        data += "--------------------------------\n";
 
-        // Encabezado
-        ops.push({ nombre: "EstablecerEnfatizado", argumentos: [true] });
-        ops.push({ nombre: "EscribirTexto", argumentos: [`${opciones.empresa || 'MIRKOS'}\n`] });
-        ops.push({ nombre: "EstablecerEnfatizado", argumentos: [false] });
-        ops.push({ nombre: "EscribirTexto", argumentos: [`Pedido #${pedido.numero_pedido}\n`] });
-        ops.push({ nombre: "EscribirTexto", argumentos: [`Fecha: ${new Date(pedido.created_at).toLocaleString()}\n`] });
-        ops.push({ nombre: "EscribirTexto", argumentos: ["--------------------------------\n"] });
-
-        // Items
-        ops.push({ nombre: "EstablecerAlineacion", argumentos: [0] }); // Izquierda
+        data += char.left;
         (pedido.pedido_items || []).forEach(item => {
             const nombre = (item.nombre || item.producto_nombre || 'Producto').substring(0, 20);
             const cant = item.cantidad.toString().padStart(2, ' ');
             const precio = (parseFloat(item.precio || item.precio_unitario || 0) * item.cantidad).toFixed(2);
+            data += `${cant}x ${nombre.padEnd(20, ' ')} ${precio.padStart(7, ' ')}\n`;
 
-            ops.push({ nombre: "EscribirTexto", argumentos: [`${cant}x ${nombre.padEnd(20, ' ')} ${precio.padStart(7, ' ')}\n`] });
-
-            // Agregados
             if (item.agregados && item.agregados.length > 0) {
                 item.agregados.forEach(ag => {
-                    ops.push({ nombre: "EscribirTexto", argumentos: [`   + ${ag.nombre.substring(0, 25)}\n`] });
+                    data += `   + ${ag.nombre.substring(0, 25)}\n`;
                 });
             }
         });
 
-        ops.push({ nombre: "EscribirTexto", argumentos: ["--------------------------------\n"] });
+        data += "--------------------------------\n";
+        data += char.right + char.boldOn + "TOTAL: $" + parseFloat(pedido.total || 0).toFixed(2) + "\n" + char.boldOff;
 
-        // Totales
-        ops.push({ nombre: "EstablecerAlineacion", argumentos: [2] }); // Derecha
-        ops.push({ nombre: "EstablecerEnfatizado", argumentos: [true] });
-        ops.push({ nombre: "EscribirTexto", argumentos: [`TOTAL: $${parseFloat(pedido.total || 0).toFixed(2)}\n`] });
-        ops.push({ nombre: "EstablecerEnfatizado", argumentos: [false] });
+        data += char.center + "\n¡Gracias por su preferencia!\n\n\n";
+        data += char.cut;
 
-        // Pie
-        ops.push({ nombre: "EstablecerAlineacion", argumentos: [1] }); // Centro
-        ops.push({ nombre: "EscribirTexto", argumentos: ["\n¡Gracias por su preferencia!\n\n\n"] });
-
-        // Corte
-        ops.push({ nombre: "Corte", argumentos: [1] });
-
-        return ops;
+        return [data]; // QZ espera un array
     },
 
     /**
      * Genera comandos para comanda de cocina
      */
     formatearComanda: (pedido) => {
-        const ops = [];
-        ops.push({ nombre: "Iniciar", argumentos: [] });
-        ops.push({ nombre: "EstablecerAlineacion", argumentos: [1] });
-        ops.push({ nombre: "EstablecerEnfatizado", argumentos: [true] });
-        ops.push({ nombre: "EscribirTexto", argumentos: ["*** COMANDA DE COCINA ***\n"] });
-        ops.push({ nombre: "EscribirTexto", argumentos: [`PEDIDO #${pedido.numero_pedido}\n`] });
-        ops.push({ nombre: "EstablecerEnfatizado", argumentos: [false] });
+        const char = {
+            init: '\x1B\x40',
+            center: '\x1B\x61\x01',
+            left: '\x1B\x61\x00',
+            boldOn: '\x1B\x45\x01',
+            boldOff: '\x1B\x45\x00',
+            doubleH: '\x1B\x21\x10',
+            normal: '\x1B\x21\x00',
+            cut: '\x1D\x56\x41\x03'
+        };
+
+        let data = "";
+        data += char.init;
+        data += char.center + char.boldOn + "*** COMANDA DE COCINA ***\n" + char.boldOff;
+        data += char.doubleH + "PEDIDO #" + pedido.numero_pedido + char.normal + "\n";
 
         if (pedido.tipo === 'mesa') {
-            ops.push({ nombre: "EscribirTexto", argumentos: [`MESA: ${pedido.mesa_nombre || 'N/A'}\n`] });
+            data += "MESA: " + (pedido.mesa_nombre || 'N/A') + "\n";
         }
+        data += "--------------------------------\n";
 
-        ops.push({ nombre: "EscribirTexto", argumentos: ["--------------------------------\n"] });
-        ops.push({ nombre: "EstablecerAlineacion", argumentos: [0] });
-
+        data += char.left;
         (pedido.pedido_items || []).forEach(item => {
-            ops.push({ nombre: "EstablecerEnfatizado", argumentos: [true] });
-            ops.push({ nombre: "EscribirTexto", argumentos: [`${item.cantidad}x ${item.nombre || item.producto_nombre}\n`] });
-            ops.push({ nombre: "EstablecerEnfatizado", argumentos: [false] });
-
+            data += char.boldOn + item.cantidad + "x " + (item.nombre || item.producto_nombre) + "\n" + char.boldOff;
             if (item.agregados && item.agregados.length > 0) {
                 item.agregados.forEach(ag => {
-                    ops.push({ nombre: "EscribirTexto", argumentos: [`  > ${ag.nombre}\n`] });
+                    data += `  > ${ag.nombre}\n`;
                 });
             }
             if (item.notas) {
-                ops.push({ nombre: "EscribirTexto", argumentos: [`  NOTA: ${item.notas}\n`] });
+                data += `  NOTA: ${item.notas}\n`;
             }
         });
 
-        ops.push({ nombre: "EscribirTexto", argumentos: ["\n\n"] });
-        ops.push({ nombre: "Corte", argumentos: [1] });
+        data += "\n\n" + char.cut;
 
-        return ops;
+        return [data];
     }
 };
