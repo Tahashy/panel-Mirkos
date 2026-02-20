@@ -27,6 +27,16 @@ const PanelLateralPedido = ({ pedido, restaurante, onClose, onCambiarEstado, onE
     };
 
     const handleImprimir = async (tipo) => {
+        // Preparar items
+        const itemsParaImprimir = tipo === 'cocina'
+            ? (pedido.pedido_items || []).filter(item => !item.impreso)
+            : (pedido.pedido_items || []);
+
+        if (tipo === 'cocina' && itemsParaImprimir.length === 0) {
+            showToast('No hay items nuevos para cocina', 'info');
+            return;
+        }
+
         // 1. Intentar impresión térmica IP
         const impresoras = impresorasService.getImpresoras()
             .filter(i => (tipo === 'cocina' ? i.tipo === 'cocina' : i.tipo === 'caja') && i.activo);
@@ -34,16 +44,6 @@ const PanelLateralPedido = ({ pedido, restaurante, onClose, onCambiarEstado, onE
         if (impresoras.length > 0) {
             showToast(`Enviando a impresora IP...`, 'info');
             let exitoTotal = false;
-
-            // Filtrar items si es cocina
-            const itemsParaImprimir = tipo === 'cocina'
-                ? (pedido.pedido_items || []).filter(item => !item.impreso)
-                : (pedido.pedido_items || []);
-
-            if (tipo === 'cocina' && itemsParaImprimir.length === 0) {
-                showToast('No hay items nuevos para cocina', 'info');
-                return;
-            }
 
             for (const imp of impresoras) {
                 try {
