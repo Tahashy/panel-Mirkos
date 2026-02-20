@@ -241,7 +241,29 @@ const ModalNuevoPedido = ({ restauranteId, restaurante = { nombre: 'Restaurante'
                 // (Optimización futura: diff changes)
             } else {
                 // INSERT
-                pedidoData.numero_pedido = generarNumeroPedido();
+
+                // --- NUEVA LÓGICA: CONTADOR DIARIO ---
+                // 1. Obtener el inicio del día local
+                const hoy = new Date();
+                hoy.setHours(0, 0, 0, 0);
+
+                // 2. Contar pedidos realizados hoy en este restaurante
+                const { count, error: countError } = await supabase
+                    .from('pedidos')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('restaurante_id', restauranteId)
+                    .gte('created_at', hoy.toISOString());
+
+                if (countError) console.error('Error al obtener contador diario:', countError);
+
+                // 3. Formatear el correlativo (ej: 01, 02...)
+                const correlativo = (count || 0) + 1;
+                const correlativoFormateado = correlativo.toString().padStart(2, '0');
+
+                // 4. Generar ID único y combinar
+                const idUnico = generarNumeroPedido();
+                pedidoData.numero_pedido = `${idUnico} (#${correlativoFormateado})`;
+
                 pedidoData.usuario_id = userId;
                 pedidoData.estado = 'pendiente';
 
