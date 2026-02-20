@@ -289,9 +289,8 @@ const ModalNuevoPedido = ({ restauranteId, restaurante = { nombre: 'Restaurante'
                     producto_id: item.id,
                     nombre: item.nombre,
                     cantidad: item.cantidad,
-                    precio: item.precio, // Mantener por compatibilidad si es necesario
-                    precio_unitario: precioUnitario,
-                    subtotal: subtotal
+                    precio: item.precio,
+                    subtotal: subtotal // Si esto también falla, es que subtotal es generada
                 };
                 if (item.notas) itemData.notas = item.notas;
                 if (item.agregados && item.agregados.length > 0) itemData.agregados = item.agregados;
