@@ -93,21 +93,18 @@ const PanelLateralPedido = ({ pedido, restaurante, onClose, onCambiarEstado, onE
                         printWindow.close();
                         setVistaImpresion(null);
                         setItemsFiltrados(null);
-
-                        // Actualizar DB si fue cocina
-                        if (tipo === 'cocina') {
-                            const ids = itemsParaImprimir.map(i => i.id);
-                            supabase.from('pedido_items').update({ impreso: true }).in('id', ids)
-                                .then(({ error }) => {
-                                    if (error) console.error('Error marcando como impreso:', error);
-                                });
-                        }
                     }, 250);
                 } else {
                     showToast('Habilita popups para imprimir', 'warning');
+                    // Resetear estados si falló la apertura
+                    setVistaImpresion(null);
+                    setItemsFiltrados(null);
                 }
+            } else {
+                setVistaImpresion(null);
+                setItemsFiltrados(null);
             }
-        }, 100);
+        }, 150); // Un poco más de tiempo para seguridad
     };
 
 

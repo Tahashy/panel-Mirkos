@@ -34,10 +34,13 @@ export const obtenerPagos = async (restauranteId, filtros = {}) => {
 
         // Aplicar filtros
         if (filtros.fechaInicio && filtros.fechaFin) {
-            // Asegurar que el rango cubra todo el día (00:00:00 a 23:59:59)
+            // Asegurar que el rango cubra todo el día (00:00:00 a 23:59:59) en ISO UTC
+            const start = new Date(`${filtros.fechaInicio}T00:00:00`).toISOString();
+            const end = new Date(`${filtros.fechaFin}T23:59:59`).toISOString();
+
             query = query
-                .gte('fecha_finalizacion', `${filtros.fechaInicio}T00:00:00`)
-                .lte('fecha_finalizacion', `${filtros.fechaFin}T23:59:59`);
+                .gte('fecha_finalizacion', start)
+                .lte('fecha_finalizacion', end);
         }
 
         if (filtros.metodoPago && filtros.metodoPago !== 'todos') {
